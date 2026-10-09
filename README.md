@@ -8,9 +8,10 @@ every connection to an outside service is off until you turn it on.
 
 ![The BiFrost home timeline](docs/screenshots/timeline.png)
 
-> **Status: early.** BiFrost is version 0.1 and there are no prebuilt downloads yet, so you build it from source
-> (see [Building from source](#building-from-source)). It is used daily on Windows. Linux builds and runs; macOS
-> has not been tested yet. Expect rough edges and please report them.
+> **Status: early.** BiFrost is version 0.1. Download it for Windows, macOS or Linux from the
+> [Releases page](https://github.com/nickmorell/bifrost/releases), or [build it from source](#building-from-source).
+> It is used daily on Windows; Linux builds and runs; macOS has not been tested yet. Expect rough edges and please
+> report them.
 
 ## Why BiFrost
 
@@ -169,12 +170,11 @@ The build stops if the tag and the version in `Cargo.toml` differ.
 
 ## Roadmap
 
-1. **First release:** prebuilt downloads for Windows, macOS and Linux, built by CI.
-2. **An Integrations page** that shows every switch and exactly what each one sends where.
-3. **More of the AT Protocol network:** show which AT Protocol apps a person uses on their profile, then cards
+1. **An Integrations page** that shows every switch and exactly what each one sends where.
+2. **More of the AT Protocol network:** show which AT Protocol apps a person uses on their profile, then cards
    for events with RSVP (Smoke Signal), code (Tangled), reviews (Popfeed, BookHive), photos (Flashes, Grain)
    and what people are listening to (teal.fm).
-4. **Own your data:** a full backup of your account and images to your computer.
+3. **Own your data:** a full backup of your account and images to your computer.
 
 BiFrost is desktop only: there are no plans for a mobile app, and no plans for plugins or AI features.
 
