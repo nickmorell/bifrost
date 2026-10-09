@@ -39,6 +39,10 @@ fn only_mine(dir: &Path) -> std::io::Result<()> {
 }
 
 #[cfg(not(unix))]
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "same signature as the Unix version, which can fail"
+)]
 fn only_mine(_: &Path) -> std::io::Result<()> {
     Ok(())
 }
