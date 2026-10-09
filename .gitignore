@@ -1,0 +1,47 @@
+# Build output
+/target/
+**/*.rs.bk
+*.pdb
+
+# Profiling and coverage
+*.profraw
+*.profdata
+perf.data*
+flamegraph.svg
+
+# Patch leftovers
+*.orig
+*.rej
+
+# Logs and local secrets (BiFrost keeps tokens in the OS keyring, never in files)
+*.log
+.env
+.env.*
+
+# Claude Code: share the project settings, keep everything personal out.
+# settings.json only refers to $CLAUDE_PROJECT_DIR, so it works on any machine.
+.claude/*
+!.claude/settings.json
+!.claude/commands/
+!.claude/agents/
+!.claude/skills/
+CLAUDE.local.md
+
+# Editors and IDEs
+.idea/
+.fleet/
+.vscode/*
+!.vscode/extensions.json
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# Operating systems
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+.directory

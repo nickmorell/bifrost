@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      { "matcher": "Edit|MultiEdit|Write",
+        "hooks": [{ "type": "command", "command": "cd \"$CLAUDE_PROJECT_DIR\" && cargo fmt --quiet" }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "timeout": 900,
+          "command": "cd \"$CLAUDE_PROJECT_DIR\" && { cargo clippy --all-targets --quiet -- -D warnings && cargo test --quiet; } 1>&2 || exit 2" }] }
+    ]
+  }
+}

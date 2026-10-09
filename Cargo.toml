@@ -1,0 +1,97 @@
+[package]
+name = "bifrost"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+default-run = "bifrost"
+
+[dependencies]
+atrium-api = { version = "0.25", default-features = false, features = ["agent", "bluesky"] }
+atrium-common = "0.1"
+atrium-identity = { version = "0.1.9", features = ["doh-handle-resolver"] }
+atrium-oauth = { version = "0.1.7", default-features = false }
+atrium-xrpc = "0.12"
+base64 = "0.23.1"
+chrono = { version = "0.4.45", features = ["serde"] }
+dirs = "7.0.0"
+# Image formats come from the `image` line below: only the ones Bluesky serves.
+iced = { version = "0.14", default-features = false, features = ["wgpu", "tiny-skia", "crisp", "web-colors", "tokio", "image-without-codecs", "svg", "advanced"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif", "bmp"] }
+# OS notifications (shown from a blocking thread).
+notify-rust = "4"
+keyring = { version = "3.6", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+open = "5.4.4"
+# The built-in video player: H.264 decoding, AAC decoding and sound output.
+openh264 = "0.9"
+reqwest = { version = "0.12", features = ["json"] }
+rfd = "0.17.2"
+rodio = { version = "0.22", default-features = false, features = ["playback"] }
+rpassword = "7.5.4"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+# The system tray icon and its menu.
+tray-icon = "0.26"
+symphonia = { version = "0.5", default-features = false, features = ["aac", "mp3"] }
+thiserror = "2.0.21"
+# Live stream chat arrives over a websocket.
+tokio-tungstenite = { version = "0.30", features = ["native-tls"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+tokio = { version = "1.53.2", features = ["fs", "macros", "rt-multi-thread", "sync", "time"] }
+sys-locale = "0.3.2"
+unicode-segmentation = "1.13.3"
+url = "2.5.8"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+iced = { version = "0.14", default-features = false, features = ["x11", "wayland"] }
+# The tray icon runs on its own GTK thread on Linux.
+gtk = "0.18"
+
+[target.'cfg(windows)'.dependencies]
+# Already used by iced's clipboard; read directly for pasting images.
+clipboard-win = "5.4"
+# Registers BiFrost's name and icon so Windows shows them on notifications.
+winreg = "0.56"
+
+[profile.release]
+# One optimisation unit across all crates: slower to build, smaller and faster to run.
+lto = "fat"
+codegen-units = 1
+strip = true
+
+# House rules, checked by `cargo clippy --all-targets -- -D warnings` (see CLAUDE.md).
+[lints.rust]
+unsafe_code = "forbid"
+unused_qualifications = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Errors are typed and handled; tests may still unwrap (clippy.toml).
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+print_stdout = "warn"
+print_stderr = "warn"
+# Pedantic lints that don't fit this codebase:
+missing_errors_doc = "allow"   # every fn returns a typed error; the type is the doc
+missing_panics_doc = "allow"   # panicking is denied above
+must_use_candidate = "allow"   # view builders would all need it
+doc_markdown = "allow"         # prose mentions Bluesky/AT Protocol names, not code
+module_name_repetitions = "allow"
+struct_excessive_bools = "allow" # settings are a set of switches by nature
+# UI geometry converts between f32 pixels and counts all the time.
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+cast_possible_wrap = "allow"
+unreadable_literal = "allow"     # colours are written 0xRRGGBB
+match_same_arms = "allow"        # one arm per case reads better in message matches
+needless_pass_by_value = "allow" # iced hands messages and callbacks over by value
+many_single_char_names = "allow" # video maths uses x, y, w, h
+# Long functions are being split by the restructure; switched on once ui/ is gone.
+too_many_lines = "allow"
+
+[dev-dependencies]
+iced_test = "0.14"
