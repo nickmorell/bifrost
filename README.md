@@ -1,5 +1,7 @@
 # BiFrost
 
+[![CI](https://github.com/nickmorell/bifrost/actions/workflows/ci.yml/badge.svg)](https://github.com/nickmorell/bifrost/actions/workflows/ci.yml)
+
 **A native desktop client for Bluesky and the wider AT Protocol network.**
 Written in Rust with [iced](https://iced.rs) for Windows, macOS and Linux. No browser engine, no telemetry, and
 every connection to an outside service is off until you turn it on.
@@ -151,6 +153,19 @@ BiFrost is a single crate split into modules that each do one job: `model` (data
 `components`, `features` (one folder per screen or feature) and a thin `app` shell that wires them together.
 Which module may use which is checked by `tests/architecture.rs`, and the full rules are in
 [CLAUDE.md](CLAUDE.md).
+
+GitHub Actions runs the same three checks on Windows, macOS and Linux for every pull request and every push
+to `main` (`.github/workflows/ci.yml`).
+
+### Making a release
+
+1. Set the new `version` in `Cargo.toml` and commit it to `main`.
+2. Tag that commit and push the tag: `git tag v0.1.0 && git push origin v0.1.0`.
+3. `.github/workflows/release.yml` builds the Windows, macOS (Apple silicon and Intel) and Linux downloads and
+   attaches them to a **draft** release. Check the notes on the
+   [Releases page](https://github.com/nickmorell/bifrost/releases), then publish it.
+
+The build stops if the tag and the version in `Cargo.toml` differ.
 
 ## Roadmap
 
