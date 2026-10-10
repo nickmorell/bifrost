@@ -54,6 +54,8 @@ fn prefs() -> Prefs {
         }],
         alerts: Alerts::default(),
         close_to_tray: Some(true),
+        version: "0.1.0",
+        update: UpdateCheck::Off,
     }
 }
 
@@ -102,6 +104,7 @@ fn every_section_is_there_with_the_cards_the_app_draws() {
         "EXTERNAL MEDIA",
         "INTEGRATIONS",
         "ACCOUNTS",
+        "ABOUT",
         "KEYBOARD SHORTCUTS",
     ] {
         assert!(ui.find(heading).is_ok(), "{heading} is missing");
@@ -174,6 +177,68 @@ fn preferences_are_handed_to_the_shell_to_save() {
     assert_eq!(
         s.update(Msg::DataSaver(true)).events,
         [Event::DataSaver(true)]
+    );
+    assert_eq!(
+        s.update(Msg::CheckUpdates(true)).events,
+        [Event::CheckUpdates(true)]
+    );
+}
+
+#[test]
+fn about_shows_the_version_and_reports_a_problem() {
+    let mut s = Screen::default();
+    {
+        let mut ui = simulator(&s);
+        assert!(ui.find("BiFrost 0.1.0").is_ok());
+        assert!(ui.find("Checking…").is_err(), "the check is off");
+    }
+    assert!(matches!(press(&s, "Report…")[..], [Msg::ReportProblem]));
+    assert_eq!(s.update(Msg::ReportProblem).events, [Event::ReportProblem]);
+}
+
+#[test]
+fn the_update_check_says_what_it_found() {
+    let mut s = Screen::default();
+    let with = |update| Prefs { update, ..prefs() };
+    for (update, words) in [
+        (UpdateCheck::Checking, "Checking…"),
+        (UpdateCheck::UpToDate, "You have the newest version."),
+        (
+            UpdateCheck::Failed("no connection".into()),
+            "Couldn't check for updates: no connection",
+        ),
+        (
+            UpdateCheck::Available {
+                version: "0.2.0".into(),
+                url: "https://x/0.2.0".into(),
+            },
+            "BiFrost 0.2.0 is out.",
+        ),
+    ] {
+        let mut ui = Simulator::with_size(
+            iced::Settings::default(),
+            Size::new(1024.0, 4000.0),
+            screen_with(&s, with(update)),
+        );
+        assert!(ui.find(words).is_ok(), "{words} is missing");
+    }
+    let mut ui = Simulator::with_size(
+        iced::Settings::default(),
+        Size::new(1024.0, 4000.0),
+        screen_with(
+            &s,
+            with(UpdateCheck::Available {
+                version: "0.2.0".into(),
+                url: "https://x/0.2.0".into(),
+            }),
+        ),
+    );
+    ui.click("Download").unwrap();
+    let msgs: Vec<Msg> = ui.into_messages().collect();
+    assert!(matches!(&msgs[..], [Msg::OpenRelease(u)] if u == "https://x/0.2.0"));
+    assert_eq!(
+        s.update(Msg::OpenRelease("https://x/0.2.0".into())).events,
+        [Event::Browse("https://x/0.2.0".into())]
     );
 }
 

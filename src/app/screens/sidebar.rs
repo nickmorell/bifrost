@@ -3,6 +3,7 @@
 use crate::app::util::avatar;
 use crate::app::{App, Message, ProfileTab, Route, compose, nav};
 use crate::components::{self as ui, Icon, icon, nav_item};
+use crate::features::settings::UpdateCheck;
 use crate::theme::icon_size;
 use crate::theme::{self, Tone, gap, layout, size};
 use iced::widget::{button, column, container, row, space, text};
@@ -102,6 +103,9 @@ impl App {
         .width(if rail { layout::RAIL } else { layout::SIDEBAR })
         .height(Length::Fill);
 
+        if let Some(update) = self.update_link(rail) {
+            col = col.push(update);
+        }
         if let Some(me) = &self.me {
             let mut who = row![avatar(self, me.avatar.as_deref(), 30.0)]
                 .spacing(gap::S + 2.0)
@@ -125,5 +129,29 @@ impl App {
             );
         }
         col.into()
+    }
+
+    /// "BiFrost 0.2.0 is out", when the opt-in update check found a newer version.
+    fn update_link(&self, rail: bool) -> Option<Element<'_, Message>> {
+        let UpdateCheck::Available { version, url } = self.update_check() else {
+            return None;
+        };
+        let label = format!("BiFrost {version} is out");
+        let mut content = row![icon(Icon::Download, icon_size::M, Tone::Accent)]
+            .spacing(gap::S)
+            .align_y(Alignment::Center);
+        if !rail {
+            content = content.push(text(label.clone()).size(size::SMALL));
+        }
+        let link = button(container(content).center_x(Length::Fill))
+            .width(Length::Fill)
+            .padding(gap::S)
+            .style(theme::row_button)
+            .on_press(Message::Nav(nav::Msg::Browse(url)));
+        Some(if rail {
+            ui::tip(link, label)
+        } else {
+            link.into()
+        })
     }
 }

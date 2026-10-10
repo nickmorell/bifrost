@@ -15,7 +15,7 @@ mod web;
 pub use error::ApiError;
 use error::{answer, xrpc_err};
 pub use server::{Credentials, DEFAULT_SERVICE, insecure_server};
-pub use web::{fetch_bytes, link_card};
+pub use web::{fetch_bytes, github, link_card};
 
 use crate::auth::atrium::{AtriumBackend, to_atp};
 use crate::auth::oauth::{OAuth, OAuthAgent};

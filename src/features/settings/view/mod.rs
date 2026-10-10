@@ -2,6 +2,7 @@
 //! other parts of the app, which draw them through [`Host`], so these views build the
 //! app's own message type `M` through [`View::lift`].
 
+mod about;
 mod external;
 mod notifications;
 mod parts;
@@ -63,6 +64,7 @@ impl<'a, H: Host<M>, M: Clone + 'static> View<'a, H, M> {
         col = section(col, "Accounts")
             .push(self.host.accounts())
             .push(parts::remove_all(self.screen.confirming(), lift));
+        col = section(col, "About").push(ui::card(about::card(p, lift)).padding(gap::L));
         section(col, "Keyboard shortcuts")
             .push(ui::card(parts::shortcuts()).padding(gap::L))
             .into()

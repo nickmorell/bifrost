@@ -3,8 +3,8 @@
 use super::{
     ProfileTab, account, actions, articles, chat, collections, compose, composer, deck, drafts,
     feeds, filters, interaction, lists, live, login, moderation, music, nav, notifications, people,
-    pictures, popups, prefs, privacy, search, stats, thread, timeline, translate, tray, video,
-    viewer, window,
+    pictures, popups, prefs, privacy, search, stats, thread, timeline, translate, tray, updates,
+    video, viewer, window,
 };
 pub use crate::features::actions::Toggle;
 use crate::model::{ArticleRef, AtUri, FeedSource, PeopleKind};
@@ -109,6 +109,7 @@ pub enum Message {
     Compose(compose::Msg),
     Interaction(interaction::Msg),
     Tray(tray::Msg),
+    Updates(updates::Msg),
     Alerts(crate::features::alerts::Msg),
     /// Time to check the unread counts.
     UnreadTick,

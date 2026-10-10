@@ -72,6 +72,9 @@ pub struct Settings {
     /// cards come without pictures.
     #[serde(default)]
     pub data_saver: bool,
+    /// Asks GitHub for the newest release at start-up. Off until turned on.
+    #[serde(default)]
+    pub check_updates: bool,
 }
 
 /// Dark or light colours, or whichever the system uses.
@@ -131,6 +134,7 @@ impl Default for Settings {
             feed_filters: BTreeMap::new(),
             alt_reminder: true,
             data_saver: false,
+            check_updates: false,
         }
     }
 }
@@ -258,6 +262,13 @@ mod tests {
         assert!(!s.integration_enabled("youtube"));
         s.integrations.insert("youtube".into(), true);
         assert!(s.integration_enabled("youtube"));
+    }
+
+    #[test]
+    fn the_update_check_is_off_until_switched_on() {
+        assert!(!Settings::default().check_updates);
+        let old: Settings = serde_json::from_str(r#"{"zoom":1.0}"#).unwrap();
+        assert!(!old.check_updates);
     }
 
     #[test]

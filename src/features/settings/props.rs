@@ -41,4 +41,23 @@ pub struct Prefs {
     /// Whether closing the window keeps BiFrost in the tray, or `None` where this
     /// system has no tray.
     pub close_to_tray: Option<bool>,
+    /// This build's version.
+    pub version: &'static str,
+    /// The opt-in update check and what it found.
+    pub update: UpdateCheck,
+}
+
+/// The opt-in check for a newer BiFrost, as Settings shows it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UpdateCheck {
+    Off,
+    Checking,
+    UpToDate,
+    /// A newer version is out; `url` is its release page.
+    Available {
+        version: String,
+        url: String,
+    },
+    /// The check didn't get an answer, in words for people.
+    Failed(String),
 }

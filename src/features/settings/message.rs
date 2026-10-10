@@ -31,6 +31,12 @@ pub enum Msg {
     DataSaver(bool),
     /// The Moderation row was pressed.
     Moderation,
+    /// "Check for updates" was switched.
+    CheckUpdates(bool),
+    /// "Report a problem" was pressed.
+    ReportProblem,
+    /// The download link of a newer version was pressed, with its release page.
+    OpenRelease(String),
     /// "Remove…" was pressed, which asks first.
     RemoveAll,
     /// The confirmation was answered: `true` removes everything.
@@ -64,6 +70,12 @@ pub enum Event {
     DataSaver(bool),
     /// Open the Moderation screen.
     Moderation,
+    /// Save whether BiFrost looks for a newer version, and look now when it does.
+    CheckUpdates(bool),
+    /// Open a new GitHub issue in the browser, with this build's details filled in.
+    ReportProblem,
+    /// Open this page in the browser.
+    Browse(String),
     /// Sign out everywhere and delete what BiFrost keeps on this computer.
     Wipe,
 }
