@@ -113,14 +113,15 @@ mod windows {
         Ok(())
     }
 
-    /// The tray's icon, without a badge, saved as a PNG for Windows to read.
+    /// The app icon at 256 px (see `docs/brand.md`).
+    const ICON: &[u8] = include_bytes!("../../assets/brand/png/bifrost-256.png");
+
+    /// The app icon, saved as a PNG for Windows to read.
     fn write_icon() -> Option<std::path::PathBuf> {
         let dir = super::super::paths::cache_dir()?;
         super::super::paths::create_dir(&dir).ok()?;
         let path = dir.join("notification-icon.png");
-        let side = super::super::tray::icon::SIZE as u32;
-        let pixels = super::super::tray::icon::pixels(0);
-        image::save_buffer(&path, &pixels, side, side, image::ExtendedColorType::Rgba8).ok()?;
+        std::fs::write(&path, ICON).ok()?;
         Some(path)
     }
 }

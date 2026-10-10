@@ -1,0 +1,17 @@
+# cargo-deny settings, used by .github/workflows/audit.yml (`cargo deny check advisories`).
+# Every exception says why it is safe and when to drop it. Look at them again
+# whenever atrium or iced gets a new version.
+
+[advisories]
+# Only flag crates BiFrost depends on itself as unmaintained. Crates pulled in by
+# iced (paste, proc-macro-error, rustybuzz, ttf-parser) can only be replaced by
+# iced, and a red check nobody can fix teaches people to ignore it.
+unmaintained = "workspace"
+ignore = [
+    # hickory-proto 0.24 (via atrium-identity's DNS-over-HTTPS handle resolver):
+    # slow name compression when *encoding* a message with many records.
+    # BiFrost only encodes its own one-question TXT lookups, so a server can't
+    # trigger it. The fix is in 0.26, which atrium-identity 0.1.9 doesn't allow;
+    # remove this once atrium moves.
+    { id = "RUSTSEC-2026-0119", reason = "only encodes our own single-question queries; fix needs atrium-identity to move to hickory 0.26" },
+]

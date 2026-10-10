@@ -2,7 +2,7 @@
 
 use super::{Login, Msg};
 use crate::components as ui;
-use crate::theme::{self, gap, size};
+use crate::theme::{self, gap, icon_size, size};
 use iced::widget::{column, container, row, space, text};
 use iced::{Alignment, Element, Length};
 
@@ -10,8 +10,8 @@ impl Login {
     pub fn view(&self) -> Element<'_, Msg> {
         let mut form = column![
             row![
-                container(space::horizontal().width(10).height(10)).style(theme::badge),
-                text("bifrost").size(size::DISPLAY).font(theme::SEMIBOLD),
+                ui::brand_mark(icon_size::BRAND),
+                text("BiFrost").size(size::DISPLAY).font(theme::SEMIBOLD),
             ]
             .spacing(gap::M)
             .align_y(Alignment::Center),

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>BiFrost</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#232428"/>
+      <stop offset="1" stop-color="#151517"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#bg)"/>
+  <rect x="4" y="4" width="1016" height="1016" rx="228" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="8"/>
+  <path d="M132 593 A430 430 0 0 1 892 593" fill="none" stroke="#a8d5ba" stroke-width="100" stroke-linecap="round"/>
+  <path d="M247 654 A300 300 0 0 1 777 654" fill="none" stroke="#a8d5ba" stroke-opacity="0.45" stroke-width="100" stroke-linecap="round"/>
+</svg>

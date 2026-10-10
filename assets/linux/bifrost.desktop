@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=BiFrost
+GenericName=Bluesky client
+Comment=One desktop app for Bluesky and the Atmosphere
+Exec=bifrost
+Icon=bifrost
+Terminal=false
+Categories=Network;InstantMessaging;
+StartupWMClass=bifrost

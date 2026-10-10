@@ -1,20 +1,12 @@
-//! The tray icon's picture, drawn in code: a "B" on a disc in BiFrost's accent colour,
-//! with a badge counting what is unread. Drawn here rather than loaded so the count can
-//! change; colours are the theme's accent and its danger red, as plain pixels because
-//! the OS takes raw RGBA.
+//! The tray icon's picture: BiFrost's app icon with a badge counting what is unread.
+//! The badge is drawn here rather than loaded so the count can change; its colour is
+//! the theme's danger red, as plain pixels because the OS takes raw RGBA.
 
 /// Width and height in pixels.
 pub(in crate::platform) const SIZE: usize = 32;
 
-const ACCENT: [u8; 4] = [0xa8, 0xd5, 0xba, 0xff];
-const INK: [u8; 4] = [0x1e, 0x1f, 0x22, 0xff];
 const BADGE: [u8; 4] = [0xe0, 0x6c, 0x75, 0xff];
 const BADGE_INK: [u8; 4] = [0xff, 0xff, 0xff, 0xff];
-
-/// "B", 5 by 7.
-const LETTER: [&str; 7] = [
-    "11110", "10001", "10001", "11110", "10001", "10001", "11110",
-];
 
 /// Digits 0-9 and "+", 3 by 5.
 const DIGITS: [[&str; 5]; 11] = [
@@ -34,9 +26,9 @@ const DIGITS: [[&str; 5]; 11] = [
 /// The icon as RGBA rows, with a badge when `unread` is above zero: the number up to
 /// nine, "+" beyond.
 pub(in crate::platform) fn pixels(unread: u64) -> Vec<u8> {
-    let mut px = vec![0; SIZE * SIZE * 4];
-    disc(&mut px, 15.5, 15.5, 15.5, ACCENT);
-    glyph(&mut px, &LETTER, 3, 9, 6, INK);
+    let mut px = super::super::app_icon::tray()
+        .filter(|icon| icon.side as usize == SIZE)
+        .map_or_else(|| vec![0; SIZE * SIZE * 4], |icon| icon.rgba);
     if unread > 0 {
         disc(&mut px, 24.0, 24.0, 8.0, BADGE);
         let digit = usize::try_from(unread).map_or(10, |n| n.min(10));
@@ -97,13 +89,16 @@ mod tests {
     }
 
     #[test]
-    fn the_icon_is_square_rgba() {
-        assert_eq!(pixels(0).len(), SIZE * SIZE * 4);
+    fn the_icon_is_the_app_icon() {
+        assert_eq!(
+            pixels(0),
+            super::super::super::app_icon::tray().unwrap().rgba
+        );
     }
 
     #[test]
     fn a_badge_shows_only_when_something_is_unread() {
-        assert_eq!(at(&pixels(0), 19, 27), ACCENT);
+        assert_ne!(at(&pixels(0), 19, 27), BADGE);
         assert_eq!(at(&pixels(3), 19, 27), BADGE);
         assert_ne!(pixels(3), pixels(4));
         assert_eq!(pixels(10), pixels(250));

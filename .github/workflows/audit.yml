@@ -1,0 +1,29 @@
+# Checks every dependency in Cargo.lock against the RustSec advisory database:
+# weekly (new advisories appear without any change here), and whenever a pull
+# request changes the dependencies. Exceptions and their reasons are in deny.toml.
+name: Security audit
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  pull_request:
+    paths: [Cargo.toml, Cargo.lock, deny.toml]
+  push:
+    branches: [main]
+    paths: [Cargo.toml, Cargo.lock, deny.toml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  advisories:
+    name: RustSec advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          command: check advisories

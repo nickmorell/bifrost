@@ -1,0 +1,30 @@
+name: Request
+description: Something you'd like BiFrost to do.
+labels: [request]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check the README's [not planned](https://github.com/nickmorell/bifrost#not-planned) list first:
+        mobile apps, plugins, AI features, big-service account integrations and cross-posting won't be added.
+        Open-ended ideas fit better in [Discussions](https://github.com/nickmorell/bifrost/discussions).
+  - type: textarea
+    id: goal
+    attributes:
+      label: What do you want to do?
+      description: Describe what you're trying to get done, not how BiFrost should do it.
+      placeholder: "I follow a lot of artists and want to see only their posts with images, without making a list."
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: How do you do it today?
+      description: In BiFrost, in another client, or not at all.
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Examples from other apps, screenshots, or which AT Protocol app this is about.

@@ -150,6 +150,8 @@ pub mod icon_size {
     pub const XXL: f32 = 22.0;
     /// The play button over a video.
     pub const HERO: f32 = 26.0;
+    /// BiFrost's mark beside the name on the login screen.
+    pub const BRAND: f32 = 44.0;
 }
 
 /// Layout constants.

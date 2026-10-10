@@ -2,6 +2,7 @@
 //! and Linux lives here, behind one function with a version per OS, so feature code
 //! never needs a `cfg`.
 
+pub mod app_icon;
 pub mod clipboard;
 pub mod fonts;
 pub mod locale;
