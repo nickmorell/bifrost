@@ -87,6 +87,9 @@ pub enum Menu {
     /// on screen (as itself and above its reply) opens one menu, not two.
     RepostAbove,
     MoreAbove,
+    /// The same menu as "…", opened by right-clicking the post.
+    Context,
+    ContextAbove,
 }
 
 /// Everything the app reacts to. Most messages belong to one part of the app and are

@@ -4,6 +4,7 @@ use super::icon::{Icon, icon};
 use super::surface::divider;
 use crate::theme::icon_size;
 use crate::theme::{self, Tone, gap, size};
+use iced::widget::text::IntoFragment;
 use iced::widget::{Column, Row, Space, button, container, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -16,7 +17,7 @@ pub fn menu<'a, M: 'a>(items: Vec<Element<'a, M>>) -> Element<'a, M> {
         .into()
 }
 
-fn menu_row<'a, M: 'a>(i: Icon, label: &'a str, tint: Tone) -> Row<'a, M> {
+fn menu_row<'a, M: 'a>(i: Icon, label: impl IntoFragment<'a>, tint: Tone) -> Row<'a, M> {
     row![
         icon(i, icon_size::M, tint),
         text(label).size(size::SMALL).style(theme::tone(tint))
@@ -26,7 +27,11 @@ fn menu_row<'a, M: 'a>(i: Icon, label: &'a str, tint: Tone) -> Row<'a, M> {
 }
 
 /// One menu item. Without a message it is greyed out and can't be pressed.
-pub fn menu_item<'a, M: Clone + 'a>(i: Icon, label: &'a str, msg: Option<M>) -> Element<'a, M> {
+pub fn menu_item<'a, M: Clone + 'a>(
+    i: Icon,
+    label: impl IntoFragment<'a>,
+    msg: Option<M>,
+) -> Element<'a, M> {
     let tint = if msg.is_some() {
         Tone::Text
     } else {

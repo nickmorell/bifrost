@@ -10,10 +10,11 @@ pub use notice::{hidden, hidden_media, hidden_quote};
 
 use super::feedback::tip;
 use super::icon::{Icon, icon};
+use super::popover::context_menu;
 use super::text::faint;
 use crate::theme::icon_size;
 use crate::theme::{self, Tone, gap, size};
-use iced::widget::{Column, button, container, mouse_area, row, text};
+use iced::widget::{Column, button, container, row, text};
 use iced::{Alignment, Element, Length, Padding};
 
 /// The size of a post's profile picture.
@@ -33,9 +34,21 @@ pub struct Card<'a, M> {
     pub line_above: bool,
     /// Draw a thread line from this post's avatar down to the next post.
     pub line_below: bool,
-    /// What clicking empty space in the post and right-clicking it send. `None` for
-    /// the post a thread is about, which is already open.
-    pub open: Option<(M, M)>,
+    /// What clicking empty space in the post sends. `None` for the post a thread is
+    /// about, which is already open.
+    pub open: Option<M>,
+    /// The menu right-clicking the post opens.
+    pub menu: Option<ContextMenu<'a, M>>,
+}
+
+/// A post's right-click menu.
+pub struct ContextMenu<'a, M> {
+    /// What right-clicking sends.
+    pub open: M,
+    /// The menu, while it is open.
+    pub popup: Option<Element<'a, M>>,
+    /// What clicking outside the open menu sends.
+    pub close: M,
 }
 
 /// A post in its frame.
@@ -70,15 +83,19 @@ pub fn card<'a, M: Clone + 'a>(c: Card<'a, M>) -> Element<'a, M> {
                 .bottom(pad(c.line_below)),
         )
         .width(Length::Fill);
-    match c.open {
+    // Clicking empty space in a post opens it; buttons and links inside take
+    // precedence.
+    let post: Element<'a, M> = match c.open {
         None => frame.into(),
-        // Clicking empty space in a post opens it; buttons and links inside take
-        // precedence. Right-clicking opens its menu.
-        Some((open, menu)) => {
-            mouse_area(button(frame).padding(0).style(theme::post).on_press(open))
-                .on_right_press(menu)
-                .into()
-        }
+        Some(open) => button(frame)
+            .padding(0)
+            .style(theme::post)
+            .on_press(open)
+            .into(),
+    };
+    match c.menu {
+        None => post,
+        Some(m) => context_menu(post, m.popup, m.open, m.close).into(),
     }
 }
 
@@ -237,7 +254,7 @@ mod tests {
         Profile,
     }
 
-    fn post(open: Option<(Msg, Msg)>) -> Element<'static, Msg> {
+    fn post(open: Option<Msg>) -> Element<'static, Msg> {
         card(Card {
             avatar: faint("pic").into(),
             body: column![header(
@@ -254,12 +271,17 @@ mod tests {
             line_above: false,
             line_below: true,
             open,
+            menu: Some(ContextMenu {
+                open: Msg::Menu,
+                popup: None,
+                close: Msg::Menu,
+            }),
         })
     }
 
     #[test]
     fn clicks_open_the_post_or_the_author() {
-        let mut ui = simulator(post(Some((Msg::Open, Msg::Menu))));
+        let mut ui = simulator(post(Some(Msg::Open)));
         assert!(ui.find("Pinned").is_ok() && ui.find("@ada.test").is_ok());
         assert!(ui.click("Ada").is_ok());
         assert!(ui.click("5m").is_ok());
@@ -267,10 +289,16 @@ mod tests {
             ui.into_messages().collect::<Vec<_>>(),
             [Msg::Profile, Msg::Open]
         );
-        // The open post does nothing when clicked.
+        // The open post does nothing when clicked, but right-clicking it opens its menu.
         let mut ui = simulator(post(None));
         assert!(ui.click("5m").is_ok());
         assert!(ui.into_messages().next().is_none());
+        let mut ui = simulator(post(None));
+        ui.point_at(iced::Point::new(300.0, 20.0));
+        let _ = ui.simulate([iced::Event::Mouse(iced::mouse::Event::ButtonPressed(
+            iced::mouse::Button::Right,
+        ))]);
+        assert_eq!(ui.into_messages().collect::<Vec<_>>(), [Msg::Menu]);
     }
 
     #[test]

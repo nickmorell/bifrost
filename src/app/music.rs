@@ -60,8 +60,18 @@ impl App {
                     return Task::none();
                 };
                 let release = match result {
-                    Ok(page) => bandcamp::release(&String::from_utf8_lossy(&page))
-                        .ok_or_else(|| "Couldn't find the tracks on the release page.".to_string()),
+                    Ok(page) => {
+                        let html = String::from_utf8_lossy(&page);
+                        bandcamp::release(&html).ok_or_else(|| {
+                            if bandcamp::is_challenge(&html) {
+                                "Bandcamp asked for a browser check before showing the tracks, \
+                                 so this release can't play here."
+                            } else {
+                                "Couldn't find the tracks on the release page."
+                            }
+                            .to_string()
+                        })
+                    }
                     Err(e) => Err(format!("Couldn't load the release page. {}", e.friendly())),
                 };
                 let first = release
@@ -168,7 +178,17 @@ impl App {
         };
         let mut col = Column::new().spacing(gap::XS);
         let Some(release) = &l.release else {
-            return Some(faint(l.error.as_deref().unwrap_or("Loading the tracks…")).into());
+            return Some(match l.error.as_deref() {
+                None => faint("Loading the tracks…").into(),
+                Some(e) => row![
+                    faint(e).width(Length::Fill),
+                    ui::secondary("Open on Bandcamp")
+                        .on_press(Message::Nav(super::nav::Msg::Browse(page.to_string()))),
+                ]
+                .spacing(gap::S)
+                .align_y(Alignment::Center)
+                .into(),
+            });
         };
         let paused = l.player.as_ref().is_some_and(Music::paused);
         let mut controls = row![

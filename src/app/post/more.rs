@@ -4,7 +4,7 @@ use super::{thread_root, web_url};
 use crate::api::ReportSubject;
 use crate::app::{App, Message, Toggle, actions, interaction, nav, popups};
 use crate::components::{self as ui, Icon};
-use crate::model::{PostView, StrongRef};
+use crate::model::{PostView, StrongRef, domain_of};
 use iced::Element;
 
 pub(super) fn menu<'a>(app: &'a App, post: &'a PostView) -> Element<'a, Message> {
@@ -36,6 +36,17 @@ pub(super) fn menu<'a>(app: &'a App, post: &'a PostView) -> Element<'a, Message>
             "Copy link to post",
             Some(Message::Popup(popups::Msg::CopyText(web_url(post)))),
         ),
+    ];
+    // One "Copy link" per link in the post, named by its site.
+    items.extend(post.links().into_iter().map(|url| {
+        let site = domain_of(url).unwrap_or_else(|| url.to_string());
+        ui::menu_item(
+            Icon::Link,
+            format!("Copy link: {site}"),
+            Some(Message::Popup(popups::Msg::CopyText(url.to_string()))),
+        )
+    }));
+    items.extend([
         ui::menu_item(
             Icon::External,
             "Open in browser",
@@ -63,7 +74,7 @@ pub(super) fn menu<'a>(app: &'a App, post: &'a PostView) -> Element<'a, Message>
                 Some(Message::Action(actions::Msg::MuteThread(root, Toggle::On))),
             )
         },
-    ];
+    ]);
     items.extend(app.collection_items(post));
     items.push(ui::menu_divider());
     if mine {
