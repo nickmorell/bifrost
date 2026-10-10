@@ -23,7 +23,7 @@ keyring = { version = "3.6", features = ["apple-native", "windows-native", "sync
 open = "5.4.4"
 # The built-in video player: H.264 decoding, AAC decoding and sound output.
 openh264 = "0.9"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 rfd = "0.17.2"
 rodio = { version = "0.22", default-features = false, features = ["playback"] }
 rpassword = "7.5.4"
