@@ -87,9 +87,32 @@ pub fn run() -> iced::Result {
             size: WINDOW,
             min_size: Some(iced::Size::new(720.0, 560.0)),
             position: iced::window::Position::Centered,
+            icon: window_icon(),
+            platform_specific: platform_window(),
             ..Default::default()
         })
         .run()
+}
+
+/// BiFrost's icon for the title bar and task switcher.
+fn window_icon() -> Option<iced::window::Icon> {
+    let icon = crate::platform::app_icon::window()?;
+    iced::window::icon::from_rgba(icon.rgba, icon.side, icon.side).ok()
+}
+
+/// On Linux the window names its desktop entry (`bifrost.desktop`), so docks and
+/// Wayland compositors show BiFrost's icon for it.
+#[cfg(target_os = "linux")]
+fn platform_window() -> iced::window::settings::PlatformSpecific {
+    iced::window::settings::PlatformSpecific {
+        application_id: "bifrost".into(),
+        ..Default::default()
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn platform_window() -> iced::window::settings::PlatformSpecific {
+    iced::window::settings::PlatformSpecific::default()
 }
 
 /// The window's size when it opens.

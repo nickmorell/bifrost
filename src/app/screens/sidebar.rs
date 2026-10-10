@@ -23,13 +23,14 @@ impl App {
             )
         };
 
-        let dot = container(space::horizontal().width(8).height(8)).style(theme::badge);
         let brand: Element<'_, Message> = if rail {
-            container(dot).center_x(Length::Fill).into()
+            container(ui::brand_mark(icon_size::XXL))
+                .center_x(Length::Fill)
+                .into()
         } else {
             row![
-                dot,
-                text("bifrost")
+                ui::brand_mark(icon_size::XXL),
+                text("BiFrost")
                     .size(size::LARGE)
                     .font(theme::SEMIBOLD)
                     .style(theme::muted),

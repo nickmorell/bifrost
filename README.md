@@ -1,3 +1,5 @@
+<img src="assets/brand/icon.svg" alt="" width="96" align="right">
+
 # BiFrost
 
 [![CI](https://github.com/nickmorell/bifrost/actions/workflows/ci.yml/badge.svg)](https://github.com/nickmorell/bifrost/actions/workflows/ci.yml)
@@ -100,9 +102,9 @@ talks to once you do.
   posts are in `%LOCALAPPDATA%\bifrost`, `~/Library/Caches/bifrost` or `~/.cache/bifrost`. On macOS and Linux
   these folders are readable by you alone. **Settings → Remove all BiFrost data** deletes all of it.
 
-Found a security problem? Please report it privately through GitHub's
-[private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability)
-instead of opening a public issue.
+Found a security problem? Please report it privately, as described in [SECURITY.md](SECURITY.md), instead of
+opening a public issue. Every download on the Releases page has a signed build provenance attestation; SECURITY.md
+shows how to check one.
 
 ## Building from source
 
@@ -156,14 +158,17 @@ Which module may use which is checked by `tests/architecture.rs`, and the full r
 [CLAUDE.md](CLAUDE.md).
 
 GitHub Actions runs the same three checks on Windows, macOS and Linux for every pull request and every push
-to `main` (`.github/workflows/ci.yml`).
+to `main`, and lints the workflows themselves with [zizmor](https://docs.zizmor.sh) (`.github/workflows/ci.yml`).
+Every action is pinned to a commit. `.github/workflows/audit.yml` checks the dependencies against the
+[RustSec advisory database](https://rustsec.org) every week (exceptions and their reasons are in `deny.toml`),
+and Dependabot proposes dependency and action updates once a month.
 
 ### Making a release
 
 1. Set the new `version` in `Cargo.toml` and commit it to `main`.
 2. Tag that commit and push the tag: `git tag v0.1.0 && git push origin v0.1.0`.
 3. `.github/workflows/release.yml` builds the Windows, macOS (Apple silicon and Intel) and Linux downloads and
-   attaches them to a **draft** release. Check the notes on the
+   attaches them to a **draft** release, with a build provenance attestation for each file. Check the notes on the
    [Releases page](https://github.com/nickmorell/bifrost/releases), then publish it.
 
 The build stops if the tag and the version in `Cargo.toml` differ.
@@ -176,7 +181,18 @@ The build stops if the tag and the version in `Cargo.toml` differ.
    and what people are listening to (teal.fm).
 3. **Own your data:** a full backup of your account and images to your computer.
 
-BiFrost is desktop only: there are no plans for a mobile app, and no plans for plugins or AI features.
+### Not planned
+
+These won't be added, so issues asking for them are closed with a link here:
+
+- **A mobile app.** BiFrost is for Windows, macOS and Linux desktops.
+- **Plugins or extensions.** Every feature is built in, reviewed and off by default when it contacts someone.
+- **AI features.** No AI summaries, AI-ranked timelines or AI writing help (see
+  [How BiFrost is made](#how-bifrost-is-made)).
+- **Accounts on big outside services** (Spotify, GitHub, Twitch and similar). BiFrost grows toward the
+  AT Protocol network instead.
+- **Cross-posting** to X, Mastodon, Threads or other networks.
+- **Telemetry or analytics** of any kind.
 
 ## How BiFrost is made
 
@@ -186,9 +202,11 @@ timelines and no AI writing in your posts. Social media should stay a place for 
 
 ## Contributing
 
-Bug reports and ideas are welcome as GitHub issues. Pull requests are welcome too; please keep them small,
-follow the rules in [CLAUDE.md](CLAUDE.md), and make sure `cargo fmt`, `cargo clippy` and `cargo test` pass.
-BiFrost is a curated app rather than a platform, so not every feature request will fit.
+Bug reports and requests are welcome through the [issue forms](https://github.com/nickmorell/bifrost/issues/new/choose),
+and questions and ideas in [Discussions](https://github.com/nickmorell/bifrost/discussions). Pull requests are
+welcome too, AI-assisted ones included. [CONTRIBUTING.md](CONTRIBUTING.md) says how issues are handled and what
+a pull request needs. BiFrost is a curated app rather than a platform, so check the [not planned](#not-planned)
+list before asking for something big.
 
 ## License
 

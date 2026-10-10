@@ -2,8 +2,7 @@
 
 BiFrost is a cross-platform (Windows, macOS, Linux) Bluesky desktop client in Rust with
 iced. These rules come from the project owner and apply to every change, by people and
-by Claude. The full reasoning is in the architecture proposal:
-https://claude.ai/code/artifact/440606fc-32b0-4575-acd2-6ac371396849
+by Claude.
 
 ## Principles
 
@@ -36,7 +35,7 @@ https://claude.ai/code/artifact/440606fc-32b0-4575-acd2-6ac371396849
 | `src/net` | Moving bytes over HTTP: the `Transport` trait (plain `Request` in, status, headers and body out, never more than the request's size cap), `Http` (reqwest) and `shared()`, the one pool every request uses except video playback, which runs on its own runtime. `socket` opens websockets (Streamplace's live chat). Tests use `net::fake::Fake`. Uses no other module |
 | `src/auth` | Login, token refresh, the account list (`AuthBackend`, `AccountManager`); tokens are kept through `storage::secrets`. `xrpc::Xrpc` is the HTTP client atrium sends Bluesky and chat calls through, over `net` |
 | `src/storage` | What BiFrost keeps on this computer: `settings`, `drafts`, `places` (where you were reading in each feed), `archive` (posts kept per account for local search and offline reading), `collections` (your private folders of posts), `secrets` (OS credential store, `SecretStore`) and `image_cache`. JSON files are written in the background through `later::Later` |
-| `src/platform` | Every Windows/macOS/Linux difference, one function with a version per OS: `paths` (config and cache folders), `fonts`, `locale` (the system language), `clipboard`, `notify` (OS notifications behind the `Notifier` trait) and `tray` (the tray icon behind the `Tray` trait; `tray::system()` is `None` where there is no tray, and on Linux the icon runs on its own GTK thread). Uses no other module and no iced |
+| `src/platform` | Every Windows/macOS/Linux difference, one function with a version per OS: `paths` (config and cache folders), `fonts`, `locale` (the system language), `clipboard`, `notify` (OS notifications behind the `Notifier` trait), `app_icon` (the app icon's pixels for the window and tray) and `tray` (the tray icon behind the `Tray` trait; `tray::system()` is `None` where there is no tray, and on Linux the icon runs on its own GTK thread). Uses no other module and no iced |
 | `src/api` | XRPC calls returning `model` types; atrium types stay in here. One error type, `ApiError` (`friendly()` words it for people). Every other HTTP client implements `client::ApiClient` (base URL, headers, error wording) over a `net::Transport`. `streamplace` is the Streamplace node (live streams, past streams, the chat websocket). `posting` publishes a post or a thread of them. `privacy` reads and writes your Discover opt-out and logged-out visibility. `articles` reads long-form articles (Standard.site, WhiteWind) straight from their authors' servers, found through the PLC directory or `did:web`. `service/` has one trait per feature (`ListsApi`, `ChatApi`, ...) that `Client` implements, so features can be tested with fakes |
 | `src/components` | Reusable widgets, one folder each (`button/`, `avatar/`, `menu/`, `popover/`, ...), re-exported flat from `components`; the larger ones (`post_card`, `media`, `video_player`) are used through their module. Generic over the message type, take plain data (props structs, child elements, messages), use only `theme` and iced; each folder has `iced_test` tests |
 | `src/features` | One folder per feature (`alerts/` (what pops up as an OS notification), `lists/`, `chat/`, `composer/`, `thread/`, `notifications/`, `settings/`, `profile/`, `search/`, `timeline/`, `deck/`, `login/`, `people/`, `feeds/`, `moderation/`, `drafts/` (kept posts, and scheduled ones sent while BiFrost runs), `live/` (Streamplace streams and their chat), `translate/` (translations under posts and the Translation settings), `prefs/` (your Bluesky preferences, changed at once and saved one at a time), `actions/` (like, repost, follow, block, mute, delete, pin and bookmark, shown at once and put back if Bluesky refuses, and who can reply to your posts), `articles/` (the long-form reader, Standard.site subscriptions and the Articles screen), `collections/` (private folders of posts kept on this computer), `privacy/` (the Discover and logged-out switches in Settings), `stats/` (your numbers for the last month, worked out from your kept posts)): its state, messages (`Msg`), update and views. Talks to Bluesky only through its `api::service` trait, reports what the app must do as `Event`s, and its views return elements of its own `Msg`. A feature whose views must embed something only the app draws (a chat message carrying a post) instead has generic views over the app's message type, with a `Host` trait the app implements and a `lift` from `Msg`. Uses `api`, `components`, `media`, `model`, `moderation` and `theme`; never `app` or another feature. Tests beside it with a fake service |
@@ -47,13 +46,11 @@ https://claude.ai/code/artifact/440606fc-32b0-4575-acd2-6ac371396849
 | `src/integrations` | The `Integration` trait and each optional integration (off by default): the external media sources that turn links into cards (`bandcamp` also reads a release's tracks so the app can play them), and `streamplace`, whose switch adds the Live screen |
 | `src/moderation.rs` | One job |
 | `src/translate` | `Translator`: the translation services and their API keys, kept in a `SecretStore` and read off the window's thread; implements `api::service::TranslateApi` |
-| `assets/` | Public assets only (fonts, icons, licences), embedded at build time |
+| `assets/` | Public assets only (fonts, icons, licences), embedded at build time. `assets/brand` holds the app icon and mark (see `docs/brand.md`); `build.rs` puts the icon into the Windows program |
 | `tests/architecture.rs` | The module rules below, as tests |
 
-A restructure is under way toward `model/`, `api/`, `auth/`, `storage/`, `platform/`,
-`theme/`, `components/<name>/`, `features/<name>/`, `media/` and a thin `app/`, one
-step at a time (migration plan in the proposal). New code goes where the target layout
-says it will live; ask before moving existing code outside the current step.
+New code goes where this table says it lives. Ask before moving existing code to a
+different module.
 
 ## Rules the tests enforce
 

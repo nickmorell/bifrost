@@ -1,0 +1,73 @@
+name: Bug
+description: Something in BiFrost doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please check the [open issues](https://github.com/nickmorell/bifrost/issues) first.
+        Security problems go to [private reporting](https://github.com/nickmorell/bifrost/security/advisories/new) instead.
+        Leave out passwords, tokens and anything from private messages.
+  - type: input
+    id: version
+    attributes:
+      label: BiFrost version
+      description: In the name of the file you downloaded, or "built from source" with the commit if you built it yourself.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS (Apple silicon)
+        - macOS (Intel)
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: os-details
+    attributes:
+      label: Version details
+      description: The macOS version, or the Linux distribution and desktop.
+      placeholder: "macOS 15.4, or Ubuntu 24.04 with GNOME"
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What you did, one step per line.
+      placeholder: |
+        1. Open a thread
+        2. Click Reply
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: Include any error message. A screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often
+      options:
+        - Every time
+        - Sometimes
+        - Once
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Which integrations are switched on, which kind of account (one or several), links to public posts that show the problem.

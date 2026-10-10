@@ -1,0 +1,27 @@
+# Dependency updates, once a month, grouped so each month is at most a couple of
+# pull requests. Merge them when CI is green. A new version is only proposed after
+# it has been out for a week, so a hijacked release is usually caught first.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      # Patch and minor updates together; a major update (iced 0.15, atrium)
+      # gets its own pull request because it usually needs code changes.
+      cargo-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]

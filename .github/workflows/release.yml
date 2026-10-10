@@ -1,6 +1,10 @@
 # Builds the downloads for Windows, macOS and Linux when a version tag is pushed
 # (for example `git tag v0.1.0 && git push origin v0.1.0`) and attaches them to a
 # draft GitHub Release. Check the draft's notes on GitHub, then press Publish.
+#
+# Every file gets a build provenance attestation, so anyone can check a download
+# was built here from this repository:
+#   gh attestation verify <file> --repo nickmorell/bifrost
 name: Release
 
 on:
@@ -38,7 +42,9 @@ jobs:
     env:
       ARCHIVE: bifrost-${{ github.ref_name }}-${{ matrix.name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Check the tag matches the version in Cargo.toml
         run: |
@@ -55,13 +61,12 @@ jobs:
           sudo apt-get install -y build-essential pkg-config libssl-dev libasound2-dev libdbus-1-dev \
             libgtk-3-dev libxdo-dev libayatana-appindicator3-dev
 
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: release
+      # No build cache here on purpose: a release is built from scratch, so
+      # nothing a pull request's run left behind can end up in a download.
+      - name: Install Rust
+        run: |
+          rustup toolchain install "$RUST_VERSION" --profile minimal
+          rustup default "$RUST_VERSION"
 
       - name: Build
         run: cargo build --release --locked --bin bifrost
@@ -81,8 +86,9 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           app="$ARCHIVE/BiFrost.app"
-          mkdir -p "$app/Contents/MacOS"
+          mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
           cp target/release/bifrost "$app/Contents/MacOS/bifrost"
+          cp assets/brand/bifrost.icns "$app/Contents/Resources/bifrost.icns"
           cat > "$app/Contents/Info.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -91,6 +97,7 @@ jobs:
             <key>CFBundleName</key><string>BiFrost</string>
             <key>CFBundleDisplayName</key><string>BiFrost</string>
             <key>CFBundleIdentifier</key><string>io.github.nickmorell.bifrost</string>
+            <key>CFBundleIconFile</key><string>bifrost</string>
             <key>CFBundleExecutable</key><string>bifrost</string>
             <key>CFBundlePackageType</key><string>APPL</string>
             <key>CFBundleVersion</key><string>${version}</string>
@@ -108,10 +115,11 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           mkdir "$ARCHIVE"
-          cp target/release/bifrost LICENSE README.md "$ARCHIVE/"
+          cp target/release/bifrost LICENSE README.md assets/linux/bifrost.desktop "$ARCHIVE/"
+          cp assets/brand/png/bifrost-256.png "$ARCHIVE/bifrost.png"
           tar -czf "$ARCHIVE.tar.gz" "$ARCHIVE"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ matrix.name }}
           path: |
@@ -125,8 +133,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # For the attestations: a short-lived signing identity, and storing them.
+      id-token: write
+      attestations: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: dist
           merge-multiple: true
@@ -135,27 +146,41 @@ jobs:
         working-directory: dist
         run: sha256sum * > SHA256SUMS.txt
 
-      - uses: softprops/action-gh-release@v2
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          draft: true
-          generate_release_notes: true
-          files: dist/*
-          body: |
-            ## Downloads
+          subject-path: dist/bifrost-*
 
-            | System | File |
-            |---|---|
-            | Windows 10 and 11 (64-bit) | `bifrost-${{ github.ref_name }}-windows-x86_64.zip` |
-            | macOS, Apple silicon (M1 and later) | `bifrost-${{ github.ref_name }}-macos-arm64.zip` |
-            | macOS, Intel | `bifrost-${{ github.ref_name }}-macos-x86_64.zip` |
-            | Linux (x86_64) | `bifrost-${{ github.ref_name }}-linux-x86_64.tar.gz` |
+      # The GitHub CLI comes with the runner, so no third-party action gets
+      # write access to the repository.
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Quoted, so the shell leaves the backticks alone; @TAG@ is filled in below.
+          cat > notes.md <<'NOTES'
+          ## Downloads
 
-            BiFrost is not signed with a paid certificate yet, so your system will warn you the first time:
+          | System | File |
+          |---|---|
+          | Windows 10 and 11 (64-bit) | `bifrost-@TAG@-windows-x86_64.zip` |
+          | macOS, Apple silicon (M1 and later) | `bifrost-@TAG@-macos-arm64.zip` |
+          | macOS, Intel | `bifrost-@TAG@-macos-x86_64.zip` |
+          | Linux (x86_64) | `bifrost-@TAG@-linux-x86_64.tar.gz` |
 
-            - **Windows:** SmartScreen says it protected your PC. Choose *More info*, then *Run anyway*.
-            - **macOS:** move BiFrost.app to Applications, then right-click it and choose *Open*. If macOS says
-              it is damaged, run `xattr -dr com.apple.quarantine /Applications/BiFrost.app` once.
-            - **Linux:** the program needs GTK 3, ALSA, D-Bus and libayatana-appindicator (installed on most
-              desktops). Run `./bifrost` from the unpacked folder.
+          BiFrost is not signed with a paid certificate yet, so your system will warn you the first time:
 
-            `SHA256SUMS.txt` lists the checksum of every file.
+          - **Windows:** SmartScreen says it protected your PC. Choose *More info*, then *Run anyway*.
+          - **macOS:** move BiFrost.app to Applications, then right-click it and choose *Open*. If macOS says
+            it is damaged, run `xattr -dr com.apple.quarantine /Applications/BiFrost.app` once.
+          - **Linux:** the program needs GTK 3, ALSA, D-Bus and libayatana-appindicator (installed on most
+            desktops). Run `./bifrost` from the unpacked folder. To add it to your app menu, copy `bifrost`
+            to `~/.local/bin`, `bifrost.desktop` to `~/.local/share/applications` and `bifrost.png` to
+            `~/.local/share/icons/hicolor/256x256/apps`.
+
+          `SHA256SUMS.txt` lists the checksum of every file. To check a download was built by this
+          repository's release workflow, run `gh attestation verify <file> --repo nickmorell/bifrost`.
+          NOTES
+          sed -i "s/@TAG@/$GITHUB_REF_NAME/g" notes.md
+          gh release create "$GITHUB_REF_NAME" dist/* --draft --verify-tag \
+            --title "$GITHUB_REF_NAME" --notes-file notes.md --generate-notes

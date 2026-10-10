@@ -7,6 +7,7 @@
 //! larger ones (`media`, `post_card`, `video_player`) are used through their module.
 
 mod avatar;
+mod brand;
 mod button;
 mod feedback;
 mod footed;
@@ -25,6 +26,7 @@ mod text;
 pub mod video_player;
 
 pub use avatar::{Frames, Picture, animation_fit, avatar, feed_avatar, live_avatar, mark, picture};
+pub use brand::brand_mark;
 pub use button::{
     action, danger, danger_icon_action, ghost, hand, icon_action, icon_button, icon_toggle,
     new_posts, primary, primary_icon, secondary,

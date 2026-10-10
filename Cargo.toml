@@ -52,6 +52,10 @@ clipboard-win = "5.4"
 # Registers BiFrost's name and icon so Windows shows them on notifications.
 winreg = "0.56"
 
+[target.'cfg(windows)'.build-dependencies]
+# Puts the app icon and name into bifrost.exe (see build.rs).
+winresource = "0.1"
+
 [profile.release]
 # One optimisation unit across all crates: slower to build, smaller and faster to run.
 lto = "fat"
