@@ -50,6 +50,7 @@ mod thread;
 mod timeline;
 mod translate;
 mod tray;
+mod updates;
 mod util;
 mod video;
 mod viewer;
@@ -87,32 +88,11 @@ pub fn run() -> iced::Result {
             size: WINDOW,
             min_size: Some(iced::Size::new(720.0, 560.0)),
             position: iced::window::Position::Centered,
-            icon: window_icon(),
-            platform_specific: platform_window(),
+            icon: window::icon(),
+            platform_specific: window::platform_specific(),
             ..Default::default()
         })
         .run()
-}
-
-/// BiFrost's icon for the title bar and task switcher.
-fn window_icon() -> Option<iced::window::Icon> {
-    let icon = crate::platform::app_icon::window()?;
-    iced::window::icon::from_rgba(icon.rgba, icon.side, icon.side).ok()
-}
-
-/// On Linux the window names its desktop entry (`bifrost.desktop`), so docks and
-/// Wayland compositors show BiFrost's icon for it.
-#[cfg(target_os = "linux")]
-fn platform_window() -> iced::window::settings::PlatformSpecific {
-    iced::window::settings::PlatformSpecific {
-        application_id: "bifrost".into(),
-        ..Default::default()
-    }
-}
-
-#[cfg(not(target_os = "linux"))]
-fn platform_window() -> iced::window::settings::PlatformSpecific {
-    iced::window::settings::PlatformSpecific::default()
 }
 
 /// The window's size when it opens.
@@ -202,6 +182,8 @@ pub struct App {
     alerts: crate::features::alerts::Alerts,
     notifier: Arc<dyn crate::platform::notify::Notifier>,
     tray: tray::TrayState,
+    /// What the opt-in update check found this run.
+    update: crate::features::settings::UpdateCheck,
 }
 
 impl App {
@@ -267,6 +249,7 @@ impl App {
             alerts: crate::features::alerts::Alerts::default(),
             notifier: Arc::new(crate::platform::notify::System),
             tray: tray::TrayState::default(),
+            update: crate::features::settings::UpdateCheck::Off,
         };
         app.images.set_lazy(app.settings.data_saver);
         std::thread::spawn(image_cache::trim);
@@ -323,6 +306,7 @@ impl App {
             Message::Notifications(msg) => self.notifications_update(msg),
             Message::Settings(msg) => self.settings_update(msg),
             Message::Tray(msg) => self.tray_update(msg),
+            Message::Updates(msg) => self.updates_update(msg),
             Message::Alerts(msg) => self.alerts_update(msg),
             Message::UnreadTick => {
                 // Also the regular moment to keep caches in check, not only on navigation,

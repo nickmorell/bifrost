@@ -1,9 +1,11 @@
-//! Public web resources: link previews through Bluesky's card service, and plain
-//! downloads such as images.
+//! Public web resources: link previews through Bluesky's card service, plain
+//! downloads such as images, and BiFrost's own GitHub repository.
 
 use super::client::ApiClient;
 use super::{ApiError, LinkCard};
 use crate::net::{Method, Transport, shared};
+
+pub mod github;
 
 /// Bluesky's link preview service, as the official app uses.
 pub struct CardService<'a>(pub &'a dyn Transport);

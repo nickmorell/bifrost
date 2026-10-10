@@ -21,6 +21,9 @@ impl Screen {
             Msg::AltReminder(on) => Update::event(Event::AltReminder(on)),
             Msg::DataSaver(on) => Update::event(Event::DataSaver(on)),
             Msg::Moderation => Update::event(Event::Moderation),
+            Msg::CheckUpdates(on) => Update::event(Event::CheckUpdates(on)),
+            Msg::ReportProblem => Update::event(Event::ReportProblem),
+            Msg::OpenRelease(url) => Update::event(Event::Browse(url)),
             Msg::RemoveAll => {
                 self.confirm_remove_all = true;
                 Update::none()

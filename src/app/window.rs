@@ -145,3 +145,24 @@ impl App {
         ])
     }
 }
+
+/// BiFrost's icon for the title bar and task switcher.
+pub(super) fn icon() -> Option<iced::window::Icon> {
+    let icon = crate::platform::app_icon::window()?;
+    iced::window::icon::from_rgba(icon.rgba, icon.side, icon.side).ok()
+}
+
+/// On Linux the window names its desktop entry (`bifrost.desktop`), so docks and
+/// Wayland compositors show BiFrost's icon for it.
+#[cfg(target_os = "linux")]
+pub(super) fn platform_specific() -> iced::window::settings::PlatformSpecific {
+    iced::window::settings::PlatformSpecific {
+        application_id: "bifrost".into(),
+        ..Default::default()
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+pub(super) fn platform_specific() -> iced::window::settings::PlatformSpecific {
+    iced::window::settings::PlatformSpecific::default()
+}

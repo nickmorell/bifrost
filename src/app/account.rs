@@ -110,6 +110,7 @@ impl App {
         self.open_archive();
         self.drafts.list = self.drafts.store.list(&did);
         let articles = self.articles_update(super::articles::Msg::Load);
+        let update = self.updates_update(super::updates::Msg::Check);
         self.phase = Phase::Ready;
         self.routes = vec![Route::Home];
         self.feeds.following_only();
@@ -125,6 +126,7 @@ impl App {
         Task::batch([
             seen,
             articles,
+            update,
             Task::perform(async move { c1.preferences().await }, |a| {
                 Message::Prefs(prefs::Msg::Loaded(a))
             }),

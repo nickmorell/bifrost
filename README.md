@@ -88,6 +88,7 @@ talks to once you do.
 | Flickr, FreeMix | Photo and mix cards | The service |
 | Streamplace | A Live screen, streamer pages, live chat and LIVE rings on avatars | Streamplace |
 | Translation | Translate posts on request | MyMemory, DeepL or a LibreTranslate server you choose |
+| Check for updates (Settings → About) | Asks once per start whether a newer BiFrost is out; never updates itself | GitHub (`api.github.com`) |
 
 ## Privacy and security
 
@@ -202,7 +203,8 @@ timelines and no AI writing in your posts. Social media should stay a place for 
 
 ## Contributing
 
-Bug reports and requests are welcome through the [issue forms](https://github.com/nickmorell/bifrost/issues/new/choose),
+Bug reports and requests are welcome through the [issue forms](https://github.com/nickmorell/bifrost/issues/new/choose)
+(in BiFrost, **Settings → About → Report a problem** opens the bug form with your version filled in),
 and questions and ideas in [Discussions](https://github.com/nickmorell/bifrost/discussions). Pull requests are
 welcome too, AI-assisted ones included. [CONTRIBUTING.md](CONTRIBUTING.md) says how issues are handled and what
 a pull request needs. BiFrost is a curated app rather than a platform, so check the [not planned](#not-planned)

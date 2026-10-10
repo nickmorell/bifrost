@@ -75,6 +75,9 @@ impl App {
                 Event::Moderation => {
                     self.handle(Message::Nav(nav::Msg::OpenRoute(Route::Moderation)))
                 }
+                Event::CheckUpdates(on) => self.set_check_updates(on),
+                Event::ReportProblem => self.report_problem(),
+                Event::Browse(url) => self.handle(Message::Nav(nav::Msg::Browse(url))),
                 Event::Wipe => self.remove_all_data(),
             });
         }
@@ -163,6 +166,8 @@ impl App {
                 .icon
                 .is_some()
                 .then_some(self.settings.close_to_tray),
+            version: crate::api::github::VERSION,
+            update: self.update_check(),
         }
     }
 
