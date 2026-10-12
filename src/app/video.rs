@@ -48,13 +48,16 @@ impl vp::Feed for Feed {
         self.0.advance()
     }
 
-    fn frame(
-        &self,
-    ) -> Option<(
-        iced::widget::image::Handle,
-        Option<iced::widget::image::Handle>,
-    )> {
-        self.0.frame()
+    fn due(&self) -> Option<iced::widget::image::Handle> {
+        self.0.due()
+    }
+
+    fn ready(&self) -> Option<iced::widget::image::Handle> {
+        self.0.ready()
+    }
+
+    fn uploaded(&self, frame: iced::advanced::image::Allocation) {
+        self.0.uploaded(frame);
     }
 }
 

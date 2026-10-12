@@ -6,6 +6,7 @@
 //! refresh themselves.
 
 use super::AuthError;
+use super::handle::{self, HandleResolver};
 use super::sessions::Sessions;
 use super::xrpc::Xrpc;
 use crate::storage::secrets::SecretStore;
@@ -14,9 +15,6 @@ use atrium_api::agent::{Agent, Configure, SessionManager};
 use atrium_api::types::string::Did;
 use atrium_common::store::Store;
 use atrium_identity::did::{CommonDidResolver, CommonDidResolverConfig, DEFAULT_PLC_DIRECTORY_URL};
-use atrium_identity::handle::{
-    AtprotoHandleResolver, AtprotoHandleResolverConfig, DohDnsTxtResolver, DohDnsTxtResolverConfig,
-};
 use atrium_oauth::store::state::MemoryStateStore;
 use atrium_oauth::{
     AtprotoLocalhostClientMetadata, AuthorizeOptions, CallbackParams, KnownScope, OAuthClient,
@@ -35,12 +33,9 @@ const REDIRECT_PORT: u16 = 45823;
 const SIGN_IN_TIMEOUT: Duration = Duration::from_mins(10);
 /// How long one connection to the redirect listener may take to send its request.
 const READ_TIMEOUT: Duration = Duration::from_secs(5);
-/// DNS-over-HTTPS service for handles verified by a DNS record.
-const DOH_URL: &str = "https://cloudflare-dns.com/dns-query";
 
 type Http = Xrpc;
 type DidResolver = CommonDidResolver<Http>;
-type HandleResolver = AtprotoHandleResolver<DohDnsTxtResolver<Http>, Http>;
 pub type OAuthAgent = Agent<OAuthSession<Http, DidResolver, HandleResolver, Sessions>>;
 
 /// Who signed in.
@@ -80,13 +75,7 @@ impl OAuth {
                     plc_directory_url: DEFAULT_PLC_DIRECTORY_URL.to_string(),
                     http_client: http.clone(),
                 }),
-                handle_resolver: AtprotoHandleResolver::new(AtprotoHandleResolverConfig {
-                    dns_txt_resolver: DohDnsTxtResolver::new(DohDnsTxtResolverConfig {
-                        service_url: DOH_URL.to_string(),
-                        http_client: http.clone(),
-                    }),
-                    http_client: http.clone(),
-                }),
+                handle_resolver: handle::resolver(&http),
                 authorization_server_metadata: Default::default(),
                 protected_resource_metadata: Default::default(),
             },
@@ -102,9 +91,10 @@ impl OAuth {
         })
     }
 
-    /// Opens the sign-in page for `handle` in the browser and waits for it to send
-    /// the browser back.
-    pub async fn sign_in(&self, handle: &str) -> Result<SignedIn, AuthError> {
+    /// Opens the sign-in page for the account `typed` names in the browser and waits
+    /// for it to send the browser back.
+    pub async fn sign_in(&self, typed: &str) -> Result<SignedIn, AuthError> {
+        let input = handle::sign_in_input(typed)?;
         self.sessions.signing_in();
         // Listen first, so the browser never comes back to nothing.
         let listener = TcpListener::bind(("127.0.0.1", REDIRECT_PORT))
@@ -118,14 +108,14 @@ impl OAuth {
         let url = self
             .client
             .authorize(
-                handle.trim().trim_start_matches('@'),
+                &input,
                 AuthorizeOptions {
                     scopes: scopes(),
                     ..Default::default()
                 },
             )
             .await
-            .map_err(|e| AuthError::Transport(format!("could not start signing in: {e}")))?;
+            .map_err(|e| handle::sign_in_error(&input, e))?;
         open::that_detached(sign_in_page(&url)?)
             .map_err(|e| AuthError::Transport(format!("could not open the browser: {e}")))?;
 
@@ -373,7 +363,7 @@ mod live {
     #[ignore = "talks to bsky.social"]
     async fn authorize_reaches_bluesky() {
         let oauth = OAuth::new(Arc::new(MemoryStore::default())).unwrap();
-        for input in ["bsky.app", "https://bsky.social"] {
+        for input in ["bsky.app", "chama.pro", "https://bsky.social"] {
             let url = oauth
                 .client
                 .authorize(

@@ -73,7 +73,7 @@ struct Shared {
     generation: AtomicU64,
     state: Mutex<State>,
     audio: Arc<audio::Buffer>,
-    /// The frame on screen and the one before it.
+    /// The frame due now and the newest one ready to draw.
     screen: Mutex<pictures::Screen>,
 }
 
