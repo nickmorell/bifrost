@@ -15,6 +15,11 @@ every connection to an outside service is off until you turn it on.
 > It is used daily on Windows; Linux builds and runs; macOS has not been tested yet. Expect rough edges and please
 > report them.
 
+> **Opening BiFrost on macOS.** The macOS builds are not signed or notarized yet, so Gatekeeper blocks them
+> the first time. Right-click → *Open* no longer gets around this since macOS Sequoia. Instead, try to open
+> BiFrost once so macOS blocks it, then open **System Settings → Privacy & Security**, scroll down to
+> **Security**, click **Open Anyway** next to BiFrost and confirm. After that it opens normally.
+
 ## Why BiFrost
 
 - **Native and light.** A real desktop app with a calm, roomy look, keyboard-friendly windows and a system tray
