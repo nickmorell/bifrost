@@ -2,18 +2,29 @@
 //!
 //! iced has no pop-up menu of its own; this lays the menu out as an overlay below
 //! (or, near the bottom of the window, above) its anchor. A click outside the menu
-//! closes it without reaching whatever is underneath.
+//! closes it without reaching whatever is underneath. `context_menu` is the same menu
+//! opened by right-clicking, where the pointer was.
+
+mod layer;
+
+use layer::Menu;
 
 use iced::advanced::layout::{self, Layout};
-use iced::advanced::widget::{self, Tree, Widget};
+use iced::advanced::widget::{self, Tree, Widget, tree};
 use iced::advanced::{Clipboard, Shell, overlay, renderer};
-use iced::{Element, Event, Length, Point, Rectangle, Size, Vector, mouse};
+use iced::{Element, Event, Length, Rectangle, Size, Vector, mouse};
 
 pub struct Popover<'a, Message, Theme, Renderer> {
     base: Element<'a, Message, Theme, Renderer>,
     popup: Option<Element<'a, Message, Theme, Renderer>>,
     on_dismiss: Message,
+    /// For a menu opened by right-clicking `base`: what the right-click sends.
+    on_right_click: Option<Message>,
 }
+
+/// Where the last right-click was, from the top left of the base.
+#[derive(Default)]
+struct Pointer(Vector);
 
 /// Shows `popup`, if any, over everything else, next to `base`.
 pub fn popover<'a, Message, Theme, Renderer>(
@@ -25,6 +36,23 @@ pub fn popover<'a, Message, Theme, Renderer>(
         base: base.into(),
         popup,
         on_dismiss,
+        on_right_click: None,
+    }
+}
+
+/// Right-clicking `base` sends `on_open`; `popup`, if any, then shows over everything
+/// else where the pointer was.
+pub fn context_menu<'a, Message, Theme, Renderer>(
+    base: impl Into<Element<'a, Message, Theme, Renderer>>,
+    popup: Option<Element<'a, Message, Theme, Renderer>>,
+    on_open: Message,
+    on_dismiss: Message,
+) -> Popover<'a, Message, Theme, Renderer> {
+    Popover {
+        base: base.into(),
+        popup,
+        on_dismiss,
+        on_right_click: Some(on_open),
     }
 }
 
@@ -34,6 +62,14 @@ where
     Message: Clone,
     Renderer: iced::advanced::Renderer,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<Pointer>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(Pointer::default())
+    }
+
     fn children(&self) -> Vec<Tree> {
         let mut out = vec![Tree::new(&self.base)];
         out.extend(self.popup.as_ref().map(Tree::new));
@@ -87,6 +123,15 @@ where
             shell,
             viewport,
         );
+        if let Some(open) = &self.on_right_click
+            && let Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) = event
+            && !shell.is_event_captured()
+            && let Some(at) = cursor.position_over(layout.bounds())
+        {
+            tree.state.downcast_mut::<Pointer>().0 = at - layout.position();
+            shell.publish(open.clone());
+            shell.capture_event();
+        }
     }
 
     fn draw(
@@ -147,12 +192,20 @@ where
         viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        let at_point = self.on_right_click.is_some();
+        let anchor = if at_point {
+            let at = layout.position() + tree.state.downcast_ref::<Pointer>().0;
+            Rectangle::new(at, Size::ZERO)
+        } else {
+            layout.bounds()
+        } + translation;
         let (base_tree, rest) = tree.children.split_first_mut()?;
         match (&mut self.popup, rest.first_mut()) {
             (Some(popup), Some(popup_tree)) => Some(overlay::Element::new(Box::new(Menu {
                 popup,
                 tree: popup_tree,
-                anchor: layout.bounds() + translation,
+                anchor,
+                at_point,
                 on_dismiss: self.on_dismiss.clone(),
             }))),
             _ => self.base.as_widget_mut().overlay(
@@ -162,131 +215,6 @@ where
                 viewport,
                 translation,
             ),
-        }
-    }
-}
-
-struct Menu<'a, 'b, Message, Theme, Renderer> {
-    popup: &'b mut Element<'a, Message, Theme, Renderer>,
-    tree: &'b mut Tree,
-    anchor: Rectangle,
-    on_dismiss: Message,
-}
-
-/// Space between the anchor and the menu, and kept clear at the window's edges.
-const GAP: f32 = 6.0;
-
-impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
-    for Menu<'_, '_, Message, Theme, Renderer>
-where
-    Message: Clone,
-    Renderer: iced::advanced::Renderer,
-{
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        let limits = layout::Limits::new(Size::ZERO, bounds);
-        let node = self
-            .popup
-            .as_widget_mut()
-            .layout(self.tree, renderer, &limits);
-        let size = node.size();
-        // A button on the right half opens its menu leftwards, like a "…" menu;
-        // one on the left half opens rightwards, so the menu sits under the post.
-        let x = if self.anchor.center_x() > bounds.width / 2.0 {
-            self.anchor.x + self.anchor.width - size.width
-        } else {
-            self.anchor.x
-        }
-        .clamp(GAP, (bounds.width - size.width - GAP).max(GAP));
-        let below = self.anchor.y + self.anchor.height + GAP;
-        let y = if below + size.height + GAP <= bounds.height {
-            below
-        } else {
-            (self.anchor.y - size.height - GAP).max(GAP)
-        };
-        layout::Node::with_children(size, vec![node]).move_to(Point::new(x, y))
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        theme: &Theme,
-        style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-    ) {
-        let Some(content) = layout.children().next() else {
-            return;
-        };
-        self.popup.as_widget().draw(
-            self.tree,
-            renderer,
-            theme,
-            style,
-            content,
-            cursor,
-            &layout.bounds(),
-        );
-    }
-
-    fn update(
-        &mut self,
-        event: &Event,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-    ) {
-        if let Event::Mouse(mouse::Event::ButtonPressed(_)) = event
-            && !cursor.is_over(layout.bounds())
-        {
-            shell.publish(self.on_dismiss.clone());
-            shell.capture_event();
-            return;
-        }
-        let Some(content) = layout.children().next() else {
-            return;
-        };
-        self.popup.as_widget_mut().update(
-            self.tree,
-            event,
-            content,
-            cursor,
-            renderer,
-            clipboard,
-            shell,
-            &layout.bounds(),
-        );
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        let Some(content) = layout.children().next() else {
-            return mouse::Interaction::None;
-        };
-        self.popup.as_widget().mouse_interaction(
-            self.tree,
-            content,
-            cursor,
-            &layout.bounds(),
-            renderer,
-        )
-    }
-
-    fn operate(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn widget::Operation,
-    ) {
-        if let Some(content) = layout.children().next() {
-            self.popup
-                .as_widget_mut()
-                .operate(self.tree, content, renderer, operation);
         }
     }
 }
@@ -306,7 +234,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use iced::widget::{button, text};
+    use iced::Point;
+    use iced::widget::{button, container, text};
     use iced_test::simulator::{self, simulator};
 
     const DISMISS: u8 = 0;
@@ -333,5 +262,32 @@ mod tests {
         ui.point_at(Point::new(600.0, 500.0));
         let _ = ui.simulate(simulator::click());
         assert_eq!(ui.into_messages().collect::<Vec<_>>(), [DISMISS]);
+    }
+
+    #[test]
+    fn a_right_click_opens_the_context_menu() {
+        const OPEN: u8 = 2;
+        let right_click = |ui: &mut simulator::Simulator<'_, u8>, at: Point| {
+            ui.point_at(at);
+            let _ = ui.simulate([
+                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)),
+                Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Right)),
+            ]);
+        };
+        let post = || {
+            context_menu(
+                container(text("Post")).width(200).height(100),
+                None,
+                OPEN,
+                DISMISS,
+            )
+        };
+        let mut ui = simulator(post());
+        right_click(&mut ui, Point::new(50.0, 50.0));
+        assert_eq!(ui.into_messages().collect::<Vec<_>>(), [OPEN]);
+        // A right-click elsewhere is not on the post.
+        let mut ui = simulator(post());
+        right_click(&mut ui, Point::new(600.0, 500.0));
+        assert!(ui.into_messages().next().is_none());
     }
 }

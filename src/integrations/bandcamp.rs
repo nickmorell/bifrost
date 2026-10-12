@@ -77,6 +77,13 @@ pub fn release(html: &str) -> Option<Release> {
     })
 }
 
+/// Whether `html` is Bandcamp's "Client Challenge" page, which it sends instead of a
+/// release to programs it takes for bots. It needs a browser to pass, so BiFrost
+/// doesn't try: it offers to open the release on Bandcamp instead.
+pub fn is_challenge(html: &str) -> bool {
+    html.contains("<title>Client Challenge</title>")
+}
+
 /// Bandcamp's own streaming servers, over https.
 fn is_stream(url: &str) -> bool {
     Url::parse(url).is_ok_and(|u| {
@@ -151,6 +158,8 @@ mod tests {
         assert_eq!(r.tracks[2].stream, None, "only Bandcamp's own servers");
         assert!((r.tracks[0].seconds - 61.5).abs() < f64::EPSILON);
         assert_eq!(release("<html></html>"), None);
+        assert!(is_challenge("<head><title>Client Challenge</title></head>"));
+        assert!(!is_challenge(html));
         let nulls = r#"<script data-tralbum="{&quot;artist&quot;:null,&quot;current&quot;:{&quot;title&quot;:null},&quot;trackinfo&quot;:[{&quot;title&quot;:null,&quot;duration&quot;:null,&quot;file&quot;:null}]}">"#;
         assert_eq!(release(nulls).unwrap().tracks.len(), 1);
     }

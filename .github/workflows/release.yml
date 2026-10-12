@@ -171,8 +171,10 @@ jobs:
           BiFrost is not signed with a paid certificate yet, so your system will warn you the first time:
 
           - **Windows:** SmartScreen says it protected your PC. Choose *More info*, then *Run anyway*.
-          - **macOS:** move BiFrost.app to Applications, then right-click it and choose *Open*. If macOS says
-            it is damaged, run `xattr -dr com.apple.quarantine /Applications/BiFrost.app` once.
+          - **macOS:** the app is not signed or notarized yet. Move BiFrost.app to Applications and try to
+            open it once so macOS blocks it. Then open *System Settings > Privacy & Security*, scroll to
+            *Security*, click *Open Anyway* next to BiFrost and confirm. If macOS says it is damaged, run
+            `xattr -dr com.apple.quarantine /Applications/BiFrost.app` once.
           - **Linux:** the program needs GTK 3, ALSA, D-Bus and libayatana-appindicator (installed on most
             desktops). Run `./bifrost` from the unpacked folder. To add it to your app menu, copy `bifrost`
             to `~/.local/bin`, `bifrost.desktop` to `~/.local/share/applications` and `bifrost.png` to

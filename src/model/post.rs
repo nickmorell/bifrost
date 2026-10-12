@@ -93,6 +93,31 @@ pub struct PostView {
     pub threadgate: Option<ThreadgateView>,
 }
 
+impl PostView {
+    /// The web links in the post: those in its text, then its link card's, each once.
+    pub fn links(&self) -> Vec<&str> {
+        let in_text = self.record.facets.iter().flat_map(|f| &f.features);
+        let mut out: Vec<&str> = in_text
+            .filter_map(|f| match f {
+                FacetFeature::Link { uri } => Some(uri.as_str()),
+                _ => None,
+            })
+            .collect();
+        let card = match &self.embed {
+            Some(Embed::External { external }) => Some(external),
+            Some(Embed::RecordWithMedia { media, .. }) => match media.as_ref() {
+                Embed::External { external } => Some(external),
+                _ => None,
+            },
+            _ => None,
+        };
+        out.extend(card.map(|c| c.uri.as_str()));
+        let mut seen = std::collections::HashSet::new();
+        out.retain(|u| seen.insert(*u));
+        out
+    }
+}
+
 /// A post or quoted record whose `value` is not a post deserializes to an empty
 /// record rather than failing the surrounding page.
 pub(super) fn lenient_record<'de, D: serde::Deserializer<'de>>(
@@ -106,6 +131,24 @@ pub(super) fn lenient_record<'de, D: serde::Deserializer<'de>>(
 mod tests {
     use crate::model::*;
     use serde_json::json;
+
+    #[test]
+    fn links_in_text_and_card_each_once() {
+        let link = |uri: &str| {
+            json!({"index": {"byteStart": 0, "byteEnd": 1},
+            "features": [{"$type": "app.bsky.richtext.facet#link", "uri": uri}]})
+        };
+        let post: PostView = serde_json::from_value(json!({
+            "uri": "at://did:plc:a/app.bsky.feed.post/1",
+            "cid": "bafy",
+            "author": {"did": "did:plc:a", "handle": "a.test"},
+            "record": {"text": "x", "facets": [link("https://a.test/1"), link("https://b.test/2"), link("https://a.test/1")]},
+            "embed": {"$type": "app.bsky.embed.external#view",
+                "external": {"uri": "https://b.test/2", "title": "", "description": ""}},
+        }))
+        .unwrap();
+        assert_eq!(post.links(), ["https://a.test/1", "https://b.test/2"]);
+    }
 
     #[test]
     fn unknown_embed_does_not_fail_post() {

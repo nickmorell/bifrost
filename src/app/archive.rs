@@ -215,7 +215,8 @@ impl App {
             above: None,
             line_above: false,
             line_below: false,
-            open: Some((open.clone(), open)),
+            open: Some(open),
+            menu: None,
         })
     }
 }

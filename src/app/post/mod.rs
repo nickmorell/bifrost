@@ -122,10 +122,10 @@ pub fn view<'a>(app: &'a App, post: &'a PostView, opts: Opts<'a>) -> Element<'a,
         body = body.push(ui::faint(format_full_time(&post.record.created_at)));
     }
 
-    let (repost_menu, more_menu) = if opts.above_reply {
-        (Menu::RepostAbove, Menu::MoreAbove)
+    let (repost_menu, more_menu, context_menu) = if opts.above_reply {
+        (Menu::RepostAbove, Menu::MoreAbove, Menu::ContextAbove)
     } else {
-        (Menu::Repost, Menu::More)
+        (Menu::Repost, Menu::More, Menu::Context)
     };
     body = body.push(actions(app, post, repost_menu, more_menu));
 
@@ -144,13 +144,21 @@ pub fn view<'a>(app: &'a App, post: &'a PostView, opts: Opts<'a>) -> Element<'a,
         above,
         line_above: opts.line_above,
         line_below: opts.line_below,
-        open: (!focused).then(|| {
-            (
-                Message::Nav(nav::Msg::OpenThread(post.uri.clone())),
-                Message::Popup(popups::Msg::ToggleMenu(post.uri.clone(), more_menu)),
-            )
+        open: (!focused).then(|| Message::Nav(nav::Msg::OpenThread(post.uri.clone()))),
+        menu: Some(pc::ContextMenu {
+            open: Message::Popup(popups::Msg::ToggleMenu(post.uri.clone(), context_menu)),
+            popup: menu_open(app, post, context_menu).then(|| menu(app, post)),
+            close: Message::Popup(popups::Msg::CloseMenu),
         }),
     })
+}
+
+/// `menu` is open on `post`.
+fn menu_open(app: &App, post: &PostView, menu: Menu) -> bool {
+    app.popups
+        .menu
+        .as_ref()
+        .is_some_and(|(u, m)| u == &post.uri && *m == menu)
 }
 
 fn actions<'a>(
@@ -159,12 +167,7 @@ fn actions<'a>(
     repost_menu: Menu,
     more_menu: Menu,
 ) -> Element<'a, Message> {
-    let open = |menu: Menu| {
-        app.popups
-            .menu
-            .as_ref()
-            .is_some_and(|(u, m)| u == &post.uri && *m == menu)
-    };
+    let open = |menu: Menu| menu_open(app, post, menu);
     let liked = post.viewer.like.is_some();
     let reposted = post.viewer.repost.is_some();
     let bookmarked = post.viewer.bookmarked;
