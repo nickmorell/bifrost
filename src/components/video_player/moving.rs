@@ -2,6 +2,8 @@
 //! next redraw when the next frame is due, so the rest of the window isn't rebuilt
 //! for every frame.
 
+use iced::advanced::Renderer as _;
+use iced::advanced::image::Allocation;
 use iced::advanced::widget::Tree;
 use iced::advanced::{Clipboard, Layout, Shell, Widget, layout, mouse, renderer};
 use iced::widget::image::{self, FilterMethod};
@@ -14,13 +16,17 @@ pub trait Feed: Send + Sync {
     /// Moves on to the frame due now, and says how long until the next one, or
     /// `None` when nothing changes without input.
     fn advance(&self) -> Option<Duration>;
-    /// The frame on screen and the one before it.
-    fn frame(&self) -> Option<(image::Handle, Option<image::Handle>)>;
+    /// The frame due now, which may not be ready to draw yet.
+    fn due(&self) -> Option<image::Handle>;
+    /// The newest frame ready to draw.
+    fn ready(&self) -> Option<image::Handle>;
+    /// Draws `frame` from now on: the renderer has it ready.
+    fn uploaded(&self, frame: Allocation);
 }
 
 struct Moving {
     feed: Arc<dyn Feed>,
-    /// Drawn underneath until a second frame has come.
+    /// Drawn until the first frame is ready.
     still: Option<image::Handle>,
     width: Length,
     height: Length,
@@ -84,14 +90,24 @@ impl<M> Widget<M, Theme, iced::Renderer> for Moving {
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        let Some((frame, previous)) = self.feed.frame() else {
-            return;
-        };
-        let mut draw = |h: &image::Handle| {
+        // A frame is drawn once the renderer has it ready; until then the one
+        // before it stays up.
+        let ready = self.feed.ready();
+        if let Some(due) = self.feed.due()
+            && ready.as_ref().map(image::Handle::id) != Some(due.id())
+        {
+            let feed = self.feed.clone();
+            renderer.allocate_image(&due, move |frame| {
+                if let Ok(frame) = frame {
+                    feed.uploaded(frame);
+                }
+            });
+        }
+        if let Some(frame) = ready.as_ref().or(self.still.as_ref()) {
             image::draw(
                 renderer,
                 layout,
-                h,
+                frame,
                 None,
                 border::Radius::default(),
                 ContentFit::Contain,
@@ -100,10 +116,55 @@ impl<M> Widget<M, Theme, iced::Renderer> for Moving {
                 1.0,
                 1.0,
             );
-        };
-        if let Some(under) = previous.as_ref().or(self.still.as_ref()) {
-            draw(under);
         }
-        draw(&frame);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use iced::advanced::image::Id;
+    use iced_test::simulator;
+    use std::sync::Mutex;
+
+    /// A frame due but not ready yet; remembers the frames handed back as ready.
+    #[derive(Default)]
+    struct Uploading {
+        due: Option<image::Handle>,
+        ready: Mutex<Vec<Id>>,
+    }
+
+    impl Feed for Uploading {
+        fn advance(&self) -> Option<Duration> {
+            None
+        }
+        fn due(&self) -> Option<image::Handle> {
+            self.due.clone()
+        }
+        fn ready(&self) -> Option<image::Handle> {
+            None
+        }
+        fn uploaded(&self, frame: Allocation) {
+            self.ready.lock().unwrap().push(frame.handle().id());
+        }
+    }
+
+    #[test]
+    fn a_frame_is_drawn_once_the_renderer_has_it_ready() {
+        let frame = image::Handle::from_rgba(2, 2, vec![255; 16]);
+        let feed = Arc::new(Uploading {
+            due: Some(frame.clone()),
+            ..Uploading::default()
+        });
+        let picture: Element<'_, ()> = moving(feed.clone(), None, Length::Fill, Length::Fill);
+        let mut ui = simulator(picture);
+        // A GPU renderer uploads in the background and hands the frame back on a
+        // later draw; a software one hands it back at once.
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        while feed.ready.lock().unwrap().is_empty() && std::time::Instant::now() < deadline {
+            assert!(ui.snapshot(&Theme::Dark).is_ok());
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert!(feed.ready.lock().unwrap().contains(&frame.id()));
     }
 }

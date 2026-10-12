@@ -110,7 +110,7 @@ fn picture<'a, M: 'a>(screen: &Screen<'a>, w: Length, h: Length) -> Element<'a, 
             .height(h)
             .content_fit(ContentFit::Contain)
     };
-    if screen.feed.frame().is_some() {
+    if screen.feed.due().is_some() {
         return moving::moving(screen.feed.clone(), screen.still.cloned(), w, h);
     }
     let still: Element<'a, M> = match screen.still {
@@ -295,9 +295,13 @@ mod tests {
         fn advance(&self) -> Option<std::time::Duration> {
             None
         }
-        fn frame(&self) -> Option<(image::Handle, Option<image::Handle>)> {
-            self.0.clone().map(|f| (f, None))
+        fn due(&self) -> Option<image::Handle> {
+            self.0.clone()
         }
+        fn ready(&self) -> Option<image::Handle> {
+            self.0.clone()
+        }
+        fn uploaded(&self, _: iced::advanced::image::Allocation) {}
     }
 
     fn nothing() -> Screen<'static> {

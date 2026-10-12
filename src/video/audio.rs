@@ -6,9 +6,9 @@ use std::collections::VecDeque;
 use std::num::NonZero;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
-use symphonia::core::audio::SampleBuffer;
-use symphonia::core::codecs::{CODEC_TYPE_AAC, CodecParameters, Decoder, DecoderOptions};
-use symphonia::core::formats::Packet;
+use symphonia::core::codecs::audio::well_known::CODEC_ID_AAC;
+use symphonia::core::codecs::audio::{AudioCodecParameters, AudioDecoder, AudioDecoderOptions};
+use symphonia::core::packet::Packet;
 use symphonia::default::codecs::AacDecoder;
 
 /// Samples handed to the output at a time. Small, so the clock stays close to what is
@@ -204,7 +204,7 @@ impl Source for Output {
 pub struct AacStream {
     decoder: Option<(AacDecoder, [u8; 2])>,
     buffer: Arc<Buffer>,
-    samples: Option<SampleBuffer<f32>>,
+    samples: Vec<f32>,
 }
 
 impl AacStream {
@@ -212,7 +212,7 @@ impl AacStream {
         Self {
             decoder: None,
             buffer,
-            samples: None,
+            samples: Vec::new(),
         }
     }
 
@@ -226,12 +226,12 @@ impl AacStream {
             let frame_secs = 1024.0 / f64::from(rate);
             let config = h.config();
             if self.decoder.as_ref().is_none_or(|(_, c)| *c != config) {
-                let mut params = CodecParameters::new();
+                let mut params = AudioCodecParameters::new();
                 params
-                    .for_codec(CODEC_TYPE_AAC)
+                    .for_codec(CODEC_ID_AAC)
                     .with_sample_rate(rate)
                     .with_extra_data(Box::new(config));
-                match AacDecoder::try_new(&params, &DecoderOptions::default()) {
+                match AacDecoder::try_new(&params, &AudioDecoderOptions::default()) {
                     Ok(d) => self.decoder = Some((d, config)),
                     Err(e) => {
                         eprintln!("can't play this sound: {e}");
@@ -248,19 +248,13 @@ impl AacStream {
             let Some((dec, _)) = &mut self.decoder else {
                 return;
             };
-            let Ok(decoded) = dec.decode(&Packet::new_from_slice(0, 0, 1024, raw)) else {
+            let Ok(decoded) = dec.decode(&Packet::new(0, 0.into(), 1024u32.into(), raw)) else {
                 continue;
             };
-            let spec = *decoded.spec();
-            let channels = spec.channels.count() as u16;
-            let sb = self
-                .samples
-                .get_or_insert_with(|| SampleBuffer::new(decoded.capacity() as u64, spec));
-            if sb.capacity() < decoded.capacity() * usize::from(channels) {
-                *sb = SampleBuffer::new(decoded.capacity() as u64, spec);
-            }
-            sb.copy_interleaved_ref(decoded);
-            let mut out = sb.samples();
+            let rate_out = decoded.spec().rate();
+            let channels = decoded.spec().channels().count() as u16;
+            decoded.copy_to_vec_interleaved(&mut self.samples);
+            let mut out = &self.samples[..];
             let mut at = start;
             if start < not_before {
                 // Trim the part of the frame before the seek point.
@@ -269,7 +263,7 @@ impl AacStream {
                 out = &out[skip.min(out.len())..];
                 at = not_before;
             }
-            self.buffer.push(out, at, spec.rate, channels);
+            self.buffer.push(out, at, rate_out, channels);
         }
     }
 }

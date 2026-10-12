@@ -6,12 +6,11 @@ use super::error::PlayError;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
-use symphonia::core::audio::SampleBuffer;
-use symphonia::core::codecs::DecoderOptions;
-use symphonia::core::formats::FormatOptions;
+use symphonia::core::codecs::audio::AudioDecoderOptions;
+use symphonia::core::formats::probe::Hint;
+use symphonia::core::formats::{FormatOptions, TrackType};
 use symphonia::core::io::{MediaSourceStream, MediaSourceStreamOptions};
 use symphonia::core::meta::MetadataOptions;
-use symphonia::core::probe::Hint;
 
 /// Seconds of sound decoded ahead of what is heard.
 const AHEAD_SECS: usize = 4;
@@ -34,48 +33,48 @@ impl Music {
         );
         let mut hint = Hint::new();
         hint.with_extension("mp3");
-        let probed = symphonia::default::get_probe()
-            .format(
+        let mut format = symphonia::default::get_probe()
+            .probe(
                 &hint,
                 stream,
-                &FormatOptions::default(),
-                &MetadataOptions::default(),
+                FormatOptions::default(),
+                MetadataOptions::default(),
             )
             .map_err(|_| PlayError::Unsupported)?;
-        let mut format = probed.format;
-        let track = format.default_track().ok_or(PlayError::Empty)?;
+        let track = format
+            .default_track(TrackType::Audio)
+            .ok_or(PlayError::Empty)?;
         let id = track.id;
+        let params = track
+            .codec_params
+            .as_ref()
+            .and_then(|p| p.audio())
+            .ok_or(PlayError::Unsupported)?;
         let mut decoder = symphonia::default::get_codecs()
-            .make(&track.codec_params, &DecoderOptions::default())
+            .make_audio_decoder(params, &AudioDecoderOptions::default())
             .map_err(|_| PlayError::Unsupported)?;
         let feed = buffer.clone();
         std::thread::Builder::new()
             .name("music".into())
             .spawn(move || {
-                let mut samples: Option<SampleBuffer<f32>> = None;
+                let mut samples: Vec<f32> = Vec::new();
                 let mut time = 0.0;
-                while let Ok(packet) = format.next_packet() {
+                while let Ok(Some(packet)) = format.next_packet() {
                     if feed.stop.load(Ordering::Relaxed) {
                         return;
                     }
-                    if packet.track_id() != id {
+                    if packet.track_id != id {
                         continue;
                     }
                     let Ok(audio) = decoder.decode(&packet) else {
                         continue;
                     };
-                    let spec = *audio.spec();
-                    let channels = spec.channels.count() as u16;
-                    let sb = samples
-                        .get_or_insert_with(|| SampleBuffer::new(audio.capacity() as u64, spec));
-                    if sb.capacity() < audio.capacity() * usize::from(channels) {
-                        *sb = SampleBuffer::new(audio.capacity() as u64, spec);
-                    }
-                    sb.copy_interleaved_ref(audio);
-                    feed.push(sb.samples(), time, spec.rate, channels);
-                    time += sb.samples().len() as f64
-                        / (f64::from(spec.rate) * f64::from(channels)).max(1.0);
-                    let ahead = spec.rate as usize * usize::from(channels) * AHEAD_SECS;
+                    let rate = audio.spec().rate();
+                    let channels = audio.spec().channels().count() as u16;
+                    audio.copy_to_vec_interleaved(&mut samples);
+                    feed.push(&samples, time, rate, channels);
+                    time += samples.len() as f64 / (f64::from(rate) * f64::from(channels)).max(1.0);
+                    let ahead = rate as usize * usize::from(channels) * AHEAD_SECS;
                     while feed.queued() > ahead && !feed.stop.load(Ordering::Relaxed) {
                         std::thread::sleep(Duration::from_millis(50));
                     }

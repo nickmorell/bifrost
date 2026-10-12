@@ -91,25 +91,27 @@ fn frames_are_shown_when_due_and_the_video_ends_after_the_last() {
     let p = player();
     loaded(&p);
     let pictures = p.pictures();
+    let frames = [frame(0.0), frame(0.1), frame(0.5)];
+    let ids: Vec<_> = frames.iter().map(|f| f.handle.id()).collect();
     {
         let mut st = lock(&p.shared.state);
-        st.frames.extend([frame(0.0), frame(0.1), frame(0.5)]);
+        st.frames.extend(frames);
         st.clock.set(0.2, false);
     }
-    assert!(pictures.frame().is_none());
+    assert!(pictures.due().is_none());
     assert!(pictures.advance().is_some(), "playing: look again soon");
     assert_eq!(
         lock(&p.shared.state).frames.len(),
         1,
         "0.0 and 0.1 were due"
     );
-    let (_, previous) = pictures.frame().unwrap();
-    assert!(previous.is_none(), "only the latest due frame is shown");
+    let due = pictures.due().map(|f| f.id());
+    assert_eq!(due, Some(ids[1]), "the latest due frame");
 
     lock(&p.shared.state).eof = true;
     lock(&p.shared.state).clock.set(0.6, false);
     pictures.advance();
-    assert!(pictures.frame().unwrap().1.is_some());
+    assert_eq!(pictures.due().map(|f| f.id()), Some(ids[2]));
     assert_eq!(p.status(), Status::Ended);
     assert!(pictures.advance().is_none(), "nothing changes once ended");
 }

@@ -11,6 +11,7 @@
 //!   tokens fresh.
 
 pub mod atrium;
+mod handle;
 mod manager;
 pub mod oauth;
 mod sessions;
@@ -104,6 +105,13 @@ pub enum AuthError {
     NoActiveAccount,
     #[error("unknown account: {0}")]
     UnknownAccount(String),
+    #[error("couldn't find the account {0}; check the handle, for example name.bsky.social")]
+    HandleNotFound(String),
+    #[error(
+        "browser sign-in needs your handle (like name.bsky.social), not your email; \
+         to use your email, sign in with an app password"
+    )]
+    EmailForBrowser,
     #[error("network or server error: {0}")]
     Transport(String),
     #[error(transparent)]
