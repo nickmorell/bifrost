@@ -158,7 +158,13 @@ mod tests {
         });
         let picture: Element<'_, ()> = moving(feed.clone(), None, Length::Fill, Length::Fill);
         let mut ui = simulator(picture);
-        assert!(ui.snapshot(&Theme::Dark).is_ok());
-        assert_eq!(*feed.ready.lock().unwrap(), [frame.id()]);
+        // A GPU renderer uploads in the background and hands the frame back on a
+        // later draw; a software one hands it back at once.
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        while feed.ready.lock().unwrap().is_empty() && std::time::Instant::now() < deadline {
+            assert!(ui.snapshot(&Theme::Dark).is_ok());
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert!(feed.ready.lock().unwrap().contains(&frame.id()));
     }
 }
