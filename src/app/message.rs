@@ -1,10 +1,10 @@
 //! The app's messages and the screens it can show (`Route`).
 
 use super::{
-    ProfileTab, account, actions, articles, chat, collections, compose, composer, deck, drafts,
-    feeds, filters, interaction, lists, live, login, moderation, music, nav, notifications, people,
-    pictures, popups, prefs, privacy, search, stats, thread, timeline, translate, tray, updates,
-    video, viewer, window,
+    ProfileTab, account, actions, articles, atstore, chat, collections, compose, composer, deck,
+    drafts, feeds, filters, interaction, lists, live, login, moderation, music, nav, notifications,
+    people, pictures, popups, prefs, privacy, search, stats, thread, timeline, translate, tray,
+    updates, video, viewer, window,
 };
 pub use crate::features::actions::Toggle;
 use crate::model::{ArticleRef, AtUri, FeedSource, PeopleKind};
@@ -42,6 +42,10 @@ pub enum Route {
     Live,
     /// A streamer's page, by handle or DID: their stream, chat and past streams.
     Channel(String),
+    /// The ATstore directory of apps and services on the AT Protocol.
+    Atstore,
+    /// One app or service on ATstore, by its listing.
+    Listing(AtUri),
     /// New articles from the publications you subscribe to.
     Articles,
     /// One article, in the reader.
@@ -132,6 +136,7 @@ pub enum Message {
     Chat(chat::Msg),
     Lists(lists::Msg),
     Live(live::Msg),
+    Atstore(atstore::Msg),
     Deck(deck::Msg),
     Filter(filters::Msg),
     Translate(translate::Msg),

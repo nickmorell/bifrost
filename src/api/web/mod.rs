@@ -1,10 +1,12 @@
 //! Public web resources: link previews through Bluesky's card service, plain
-//! downloads such as images, and BiFrost's own GitHub repository.
+//! downloads such as images, the ATstore directory, and BiFrost's own GitHub
+//! repository.
 
 use super::client::ApiClient;
 use super::{ApiError, LinkCard};
 use crate::net::{Method, Transport, shared};
 
+pub mod atstore;
 pub mod github;
 
 /// Bluesky's link preview service, as the official app uses.
