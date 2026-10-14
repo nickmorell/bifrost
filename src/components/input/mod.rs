@@ -1,6 +1,7 @@
 //! Text fields and drop-down lists.
 
 use crate::theme::{self, gap, size};
+use iced::Length;
 use iced::widget::{PickList, TextInput, pick_list, text_input};
 
 /// A text field.
@@ -11,7 +12,12 @@ pub fn field<'a, M: Clone + 'a>(placeholder: &str, value: &str) -> TextInput<'a,
         .style(theme::input)
 }
 
-/// A drop-down list.
+/// Rows a drop-down list shows before it scrolls.
+const MENU_ROWS: usize = 10;
+/// How tall the menu of a longer drop-down list is.
+const MENU_HEIGHT: f32 = 320.0;
+
+/// A drop-down list. Its menu is as tall as its options, up to [`MENU_HEIGHT`].
 pub fn select<'a, T, M: Clone + 'a>(
     options: &'a [T],
     selected: Option<T>,
@@ -24,7 +30,11 @@ where
         .text_size(size::SMALL)
         .padding([gap::S - 1.0, gap::M])
         .width(150)
-        .menu_height(320)
+        .menu_height(if options.len() > MENU_ROWS {
+            Length::Fixed(MENU_HEIGHT)
+        } else {
+            Length::Shrink
+        })
         .style(theme::select)
         .menu_style(theme::select_menu)
 }
