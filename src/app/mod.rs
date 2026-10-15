@@ -10,6 +10,7 @@ mod actions;
 mod alerts;
 mod archive;
 mod articles;
+mod atstore;
 mod cache;
 mod chat;
 mod collections;
@@ -159,6 +160,7 @@ pub struct App {
     chats: chat::Chats,
     lists: lists::Lists,
     live: live::Live,
+    atstore: atstore::Store,
     /// The video that is playing, if any.
     video: Option<video::Playing>,
     drafts: drafts::Drafts,
@@ -233,6 +235,7 @@ impl App {
             chats: chat::Chats::default(),
             lists: lists::Lists::default(),
             live: live::Live::default(),
+            atstore: atstore::Store::default(),
             video: None,
             drafts: drafts::Drafts::default(),
             articles: articles::Articles::default(),
@@ -333,6 +336,7 @@ impl App {
             Message::Chat(msg) => self.chat_update(msg),
             Message::Lists(msg) => self.lists_update(msg),
             Message::Live(msg) => self.live_update(msg),
+            Message::Atstore(msg) => self.atstore_update(msg),
             Message::Deck(msg) => self.deck_update(msg),
             Message::Filter(msg) => self.filters_update(msg),
             Message::Translate(msg) => self.translate_update(msg),

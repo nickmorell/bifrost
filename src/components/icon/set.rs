@@ -68,6 +68,7 @@ pub enum Icon {
     Chart,
     Calendar,
     Computer,
+    Apps,
 }
 
 impl Icon {
@@ -259,6 +260,10 @@ impl Icon {
             ),
             Icon::Computer => (
                 r#"<path d="M3 5a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-10z" /> <path d="M7 20h10" /> <path d="M9 16v4" /> <path d="M15 16v4" />"#,
+                false,
+            ),
+            Icon::Apps => (
+                r#"<path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /> <path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /> <path d="M14 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /> <path d="M14 7h6" /> <path d="M17 4v6" />"#,
                 false,
             ),
             Icon::Filter => (

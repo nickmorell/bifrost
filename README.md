@@ -92,6 +92,7 @@ talks to once you do.
 | GIPHY, Tenor, KLIPY | GIFs play in place | The GIF service |
 | Flickr, FreeMix | Photo and mix cards | The service |
 | Streamplace | A Live screen, streamer pages, live chat and LIVE rings on avatars | Streamplace |
+| ATstore | An ATstore screen for browsing apps and services built on the AT Protocol, kept on your computer for offline use | ATstore (`atstore.fyi`), and Bluesky's image CDN for icons |
 | Translation | Translate posts on request | MyMemory, DeepL or a LibreTranslate server you choose |
 | Check for updates (Settings → About) | Asks once per start whether a newer BiFrost is out; never updates itself | GitHub (`api.github.com`) |
 

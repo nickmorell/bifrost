@@ -7,6 +7,7 @@
 mod actions;
 mod alerts;
 mod articles;
+mod atstore;
 mod chat;
 mod collections;
 mod composer;
@@ -28,6 +29,7 @@ mod translate;
 pub use actions::ActionsApi;
 pub use alerts::AlertsApi;
 pub use articles::ArticlesApi;
+pub use atstore::AtstoreApi;
 pub use chat::ChatApi;
 pub use collections::CollectionsApi;
 pub use composer::ComposerApi;

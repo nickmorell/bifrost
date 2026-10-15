@@ -8,6 +8,7 @@
 pub mod actions;
 pub mod alerts;
 pub mod articles;
+pub mod atstore;
 pub mod chat;
 pub mod collections;
 pub mod composer;

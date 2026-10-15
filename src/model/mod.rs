@@ -9,6 +9,7 @@
 mod actor;
 mod alert;
 mod article;
+mod atstore;
 mod chat;
 mod collection;
 mod common;
@@ -35,6 +36,7 @@ pub use article::{
     Article, ArticleRef, ArticleSummary, Block, DOCUMENT, PUBLICATION, Publication, SUBSCRIPTION,
     WHITEWIND, blocks,
 };
+pub use atstore::{Catalog, Listing, ListingDetail, ListingLink};
 pub use chat::{AllowIncoming, ChatMessage, Convo, Reaction, Sender};
 pub use collection::{Collection, collection_name};
 pub use common::{Label, Mine, Page, ReplyRef, StrongRef, tid};

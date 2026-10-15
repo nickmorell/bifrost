@@ -76,6 +76,11 @@ impl App {
             } else {
                 space::vertical().height(0).into()
             },
+            if self.atstore_on() {
+                nav(Icon::Apps, "ATstore", Route::Atstore, None)
+            } else {
+                space::vertical().height(0).into()
+            },
             nav(Icon::Search, "Search", Route::Search, None),
             nav(Icon::Hash, "Feeds", Route::Feeds, None),
             nav(Icon::List, "Lists", Route::Lists, None),

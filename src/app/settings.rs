@@ -117,6 +117,7 @@ impl App {
         self.reading.dirty = false;
         self.archive = crate::storage::archive::Archive::default();
         self.collections = super::collections::Collections::default();
+        self.atstore = super::atstore::Store::default();
         let client = self.client.clone();
         let dids: Vec<String> = self.accounts_list().iter().map(|a| a.did.clone()).collect();
         let signed_out = Task::perform(

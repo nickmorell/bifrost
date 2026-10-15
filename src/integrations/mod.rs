@@ -6,6 +6,7 @@
 //! richer card (or, for GIFs, the animation itself) in place of the plain link card.
 
 mod apple_music;
+pub mod atstore;
 pub mod bandcamp;
 mod flickr;
 mod freemix;
@@ -96,6 +97,7 @@ pub fn all() -> Vec<Box<dyn Integration>> {
         Box::new(bandcamp::Bandcamp),
         Box::new(freemix::FreeMix),
         Box::new(streamplace::Streamplace),
+        Box::new(atstore::Atstore),
     ]
 }
 
@@ -198,19 +200,19 @@ mod tests {
     }
 
     #[test]
-    fn ids_are_unique_and_streamplace_is_the_one_service() {
+    fn ids_are_unique_and_the_services_are_streamplace_and_atstore() {
         let registry = all();
         let mut ids: Vec<_> = registry.iter().map(|i| i.id()).collect();
-        assert_eq!(ids.len(), 14);
+        assert_eq!(ids.len(), 15);
         ids.sort_unstable();
         ids.dedup();
-        assert_eq!(ids.len(), 14);
+        assert_eq!(ids.len(), 15);
         let services: Vec<_> = registry
             .iter()
             .filter(|i| i.group() == Group::Service)
             .map(|i| i.id())
             .collect();
-        assert_eq!(services, [streamplace::ID]);
+        assert_eq!(services, [streamplace::ID, atstore::ID]);
     }
 
     #[test]

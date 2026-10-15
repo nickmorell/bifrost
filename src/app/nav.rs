@@ -216,6 +216,8 @@ impl App {
             Route::Lists => self.load_lists_screen(),
             Route::Live => self.live_update(live::Msg::OpenBoard),
             Route::Channel(actor) => self.live_update(live::Msg::Open(actor)),
+            Route::Atstore => self.atstore_enter(),
+            Route::Listing(uri) => self.listing_enter(uri),
             Route::Articles => self.articles_enter(),
             Route::Collection(id) => self.collections_update(super::collections::Msg::Load(id)),
             Route::Collections | Route::Offline => Task::none(),
@@ -265,6 +267,8 @@ impl App {
             }
             Route::Live => self.live_update(live::Msg::RefreshBoard),
             Route::Channel(actor) => self.live_update(live::Msg::Refresh(actor)),
+            Route::Atstore => self.atstore_update(super::atstore::Msg::Refresh),
+            Route::Listing(uri) => self.atstore_update(super::atstore::Msg::Reload(uri)),
             Route::Articles => self.articles_update(super::articles::Msg::Refresh),
             Route::Collection(id) => self.collections_update(super::collections::Msg::Load(id)),
             Route::Collections | Route::Offline => Task::none(),

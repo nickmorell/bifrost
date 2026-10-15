@@ -1,7 +1,9 @@
 //! What BiFrost keeps on this computer: settings, drafts, secrets in the OS credential
-//! store, where you were reading in each feed, and the image cache. Folders come from [`crate::platform::paths`].
+//! store, where you were reading in each feed, the ATstore directory and the image
+//! cache. Folders come from [`crate::platform::paths`].
 
 pub mod archive;
+pub mod atstore;
 pub mod collections;
 pub mod drafts;
 pub mod image_cache;
