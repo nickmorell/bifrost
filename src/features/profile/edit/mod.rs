@@ -1,6 +1,9 @@
-//! The "Edit profile" dialog: display name, bio, profile picture and banner.
+//! The "Edit profile" dialog: display name, bio, profile picture, banner and links.
 
+mod links;
 mod view;
+
+pub use links::LinkMsg;
 
 use crate::api::richtext::grapheme_len;
 use crate::api::service::ProfileApi;
@@ -12,6 +15,7 @@ use crate::model::Profile;
 use iced::Task;
 use iced::widget::image;
 use iced::widget::text_editor::{Action, Content};
+use links::Links;
 
 /// Bluesky's limits, in graphemes.
 const MAX_NAME: usize = 64;
@@ -30,6 +34,7 @@ pub enum Msg {
     Pick(Pic),
     Picked(Pic, Option<Result<Prepared, MediaError>>),
     Remove(Pic),
+    Link(LinkMsg),
     Save,
     Saved(Result<(), ApiError>),
     Cancel,
@@ -71,6 +76,7 @@ pub struct Editor {
     bio: Content,
     avatar: Picture,
     banner: Picture,
+    links: Links,
     saving: bool,
     error: Option<String>,
 }
@@ -82,6 +88,7 @@ impl Editor {
             bio: Content::with_text(p.description.as_deref().unwrap_or_default()),
             avatar: Picture::Current(p.avatar.clone()),
             banner: Picture::Current(p.banner.clone()),
+            links: Links::new(p),
             saving: false,
             error: None,
         }
@@ -93,7 +100,9 @@ impl Editor {
     }
 
     fn valid(&self) -> bool {
-        grapheme_len(&self.name) <= MAX_NAME && grapheme_len(&self.bio()) <= MAX_BIO
+        grapheme_len(&self.name) <= MAX_NAME
+            && grapheme_len(&self.bio()) <= MAX_BIO
+            && self.links.valid()
     }
 
     pub(super) fn update(
@@ -127,6 +136,7 @@ impl Editor {
                 *self.slot(pic) = Picture::New(img, preview);
             }
             Msg::Remove(pic) => *self.slot(pic) = Picture::Removed,
+            Msg::Link(m) => self.links.update(m),
             Msg::Save => {
                 if self.saving || !self.valid() {
                     return (Task::none(), Outcome::None);
@@ -138,6 +148,7 @@ impl Editor {
                     description: self.bio(),
                     avatar: self.avatar.change(),
                     banner: self.banner.change(),
+                    links: self.links.edit(),
                 };
                 let api = api.clone();
                 let task = Task::perform(async move { api.save_profile(edit).await }, Msg::Saved);

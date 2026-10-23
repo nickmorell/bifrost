@@ -11,6 +11,8 @@ use iced::{Alignment, Element, Length};
 const DIALOG_WIDTH: f32 = 560.0;
 const BANNER_HEIGHT: f32 = 150.0;
 const AVATAR: f32 = 84.0;
+/// Taller than this, the form scrolls between its title and its buttons.
+const DIALOG_MAX_HEIGHT: f32 = 760.0;
 
 impl Editor {
     /// The picture shown for `pic`: the new one picked, or the one on the profile now.
@@ -82,13 +84,13 @@ impl Editor {
             }
         };
 
+        let title = row![
+            text("Edit profile").size(size::TITLE).font(theme::SEMIBOLD),
+            space::horizontal(),
+            icon_button(Icon::Close, wrap(Msg::Cancel)),
+        ]
+        .align_y(Alignment::Center);
         let mut col = column![
-            row![
-                text("Edit profile").size(size::TITLE).font(theme::SEMIBOLD),
-                space::horizontal(),
-                icon_button(Icon::Close, wrap(Msg::Cancel)),
-            ]
-            .align_y(Alignment::Center),
             stack![
                 banner,
                 container(
@@ -127,26 +129,29 @@ impl Editor {
                     .style(theme::editor),
             ]
             .spacing(gap::XS),
+            self.links.view(wrap),
         ]
-        .spacing(gap::M);
+        .spacing(gap::M)
+        .padding(iced::Padding::ZERO.right(gap::M));
 
         if let Some(e) = &self.error {
             col = col.push(text(e).size(size::SMALL).style(theme::danger_text));
         }
-        col = col.push(
-            row![
-                space::horizontal(),
-                ghost("Cancel", wrap(Msg::Cancel)),
-                ui::primary(if busy { "Saving…" } else { "Save" })
-                    .on_press_maybe((!busy && self.valid()).then_some(wrap(Msg::Save))),
-            ]
-            .spacing(gap::S)
-            .align_y(Alignment::Center),
-        );
+        let buttons = row![
+            space::horizontal(),
+            ghost("Cancel", wrap(Msg::Cancel)),
+            ui::primary(if busy { "Saving…" } else { "Save" })
+                .on_press_maybe((!busy && self.valid()).then_some(wrap(Msg::Save))),
+        ]
+        .spacing(gap::S)
+        .align_y(Alignment::Center);
 
-        container(col)
+        let footer = container(buttons).padding(iced::Padding::ZERO.top(gap::M));
+        let body = ui::footed(ui::scroll(col).height(Length::Shrink), footer);
+        container(column![title, body].spacing(gap::M))
             .padding(gap::XL)
             .width(DIALOG_WIDTH)
+            .max_height(DIALOG_MAX_HEIGHT)
             .style(theme::dialog)
             .into()
     }

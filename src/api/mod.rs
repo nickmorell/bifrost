@@ -78,6 +78,7 @@ mod live;
 mod posting;
 mod privacy;
 mod profile_record;
+pub use profile_record::{ImageChange, LinkEdit, LinksEdit, ProfileEdit};
 mod video;
 pub use posting::{DraftImage, PostDraft};
 pub use video::{
@@ -157,24 +158,6 @@ impl Display for ReportReason {
             Self::Other => "Something else",
         })
     }
-}
-
-/// What to do with a profile picture or banner when a profile is saved.
-#[derive(Debug, Clone)]
-pub enum ImageChange {
-    Keep,
-    Remove,
-    /// Upload this image (already re-encoded for upload).
-    Set(Vec<u8>),
-}
-
-/// The editable parts of your profile.
-#[derive(Debug, Clone)]
-pub struct ProfileEdit {
-    pub display_name: String,
-    pub description: String,
-    pub avatar: ImageChange,
-    pub banner: ImageChange,
 }
 
 const THREADGATE: &str = "app.bsky.feed.threadgate";

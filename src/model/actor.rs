@@ -95,6 +95,9 @@ pub struct Profile {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileLink {
+    /// Its `app.bsky.actor.link` record; `None` for the old website field.
+    #[serde(flatten)]
+    pub record: Option<StrongRef>,
     pub url: String,
     pub title: Option<String>,
     /// The destination site's icon.
@@ -139,6 +142,7 @@ impl Profile {
             let same = |l: &ProfileLink| l.url.trim_end_matches('/') == site.trim_end_matches('/');
             if site.starts_with("https://") && !links.iter().any(same) {
                 links.push(ProfileLink {
+                    record: None,
                     url: site.to_string(),
                     title: None,
                     icon: None,
@@ -229,6 +233,8 @@ mod tests {
         .unwrap();
         let shown: Vec<String> = p.shown_links().iter().map(ProfileLink::label).collect();
         assert_eq!(shown, ["example.com", "My blog"]);
+        let first = p.links[0].record.as_ref().map(|r| r.uri.as_str());
+        assert_eq!(first, Some("at://a/app.bsky.actor.link/1"));
         assert_eq!(p.pronouns(), Some("they/them"));
 
         let old: Profile = serde_json::from_value(json!({
