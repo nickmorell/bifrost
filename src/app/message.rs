@@ -6,6 +6,7 @@ use super::{
     people, pictures, popups, prefs, privacy, search, stats, thread, timeline, translate, tray,
     updates, video, viewer, window,
 };
+use crate::api::QuoteSort;
 pub use crate::features::actions::Toggle;
 use crate::model::{ArticleRef, AtUri, FeedSource, PeopleKind};
 
@@ -16,6 +17,8 @@ pub enum Route {
     Search,
     Settings,
     Thread(AtUri),
+    /// The posts quoting a post, in an order.
+    Quotes(AtUri, QuoteSort),
     Profile(String, ProfileTab),
     /// Accounts related to the actor: followers, follows, or your muted or blocked
     /// accounts.

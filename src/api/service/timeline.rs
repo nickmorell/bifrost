@@ -1,7 +1,7 @@
 //! The calls behind timelines.
 
-use crate::api::{ApiError, AuthorFilter, Client};
-use crate::model::{FeedItem, FeedSource, Page};
+use crate::api::{ApiError, AuthorFilter, Client, QuoteSort};
+use crate::model::{AtUri, FeedItem, FeedSource, Page};
 
 /// Pages of posts: a feed or list, someone's posts, and your bookmarks. Each call
 /// returns a future that can move to another thread, so it can run as an iced task.
@@ -27,6 +27,13 @@ pub trait TimelineApi: Clone + Send + Sync + 'static {
     /// A page of your bookmarks.
     fn bookmarks(
         &self,
+        cursor: Option<String>,
+    ) -> impl Future<Output = Result<Page<FeedItem>, ApiError>> + Send;
+    /// A page of the posts quoting `uri`.
+    fn quotes(
+        &self,
+        uri: &AtUri,
+        sort: QuoteSort,
         cursor: Option<String>,
     ) -> impl Future<Output = Result<Page<FeedItem>, ApiError>> + Send;
 }
@@ -58,5 +65,13 @@ impl TimelineApi for Client {
         cursor: Option<String>,
     ) -> impl Future<Output = Result<Page<FeedItem>, ApiError>> + Send {
         Client::bookmarks(self, cursor)
+    }
+    fn quotes(
+        &self,
+        uri: &AtUri,
+        sort: QuoteSort,
+        cursor: Option<String>,
+    ) -> impl Future<Output = Result<Page<FeedItem>, ApiError>> + Send {
+        Client::quotes(self, uri, sort, cursor)
     }
 }

@@ -1,5 +1,6 @@
 //! The screen for the current route.
 
+use crate::api::QuoteSort;
 use crate::app::{App, Message, Route, TimelineKey, nav, prefs};
 use crate::components::{self as ui, Icon, ghost, icon, icon_button, status};
 use crate::model::{FeedSource, PeopleKind, PrefEdit};
@@ -18,6 +19,7 @@ impl App {
             Route::Search => "Search".into(),
             Route::Settings => "Settings".into(),
             Route::Thread(_) => "Post".into(),
+            Route::Quotes(..) => "Quotes".into(),
             Route::Profile(actor, _) => match self.profile.get(actor) {
                 Some(Ok(p)) => p.name().to_string(),
                 _ => "Profile".into(),
@@ -118,6 +120,15 @@ impl App {
                 Message::Nav(nav::Msg::OpenRoute(Route::Stats)),
             ));
         }
+        if let Route::Quotes(_, sort) = route {
+            for (s, word) in [(QuoteSort::Top, "Top"), (QuoteSort::Latest, "Latest")] {
+                bar = bar.push(ui::pill(
+                    word,
+                    *sort == s,
+                    Message::Nav(nav::Msg::QuotesSort(s)),
+                ));
+            }
+        }
         if matches!(route, Route::Bookmarks) {
             bar = bar.push(ghost(
                 "Collections",
@@ -160,6 +171,9 @@ impl App {
             Route::Feeds => self.feeds_view(),
             Route::Feed(source, _) => self.timeline_screen(&TimelineKey::Feed(source.clone())),
             Route::Bookmarks => self.timeline_screen(&TimelineKey::Bookmarks),
+            Route::Quotes(uri, sort) => {
+                self.timeline_screen(&TimelineKey::Quotes(uri.clone(), *sort))
+            }
             Route::Drafts => self.drafts_view(),
             Route::Chats => self.chats_view(),
             Route::Chat(id) => self.chat_view(id),

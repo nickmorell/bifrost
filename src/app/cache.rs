@@ -35,6 +35,9 @@ impl App {
                                 || in_routes(&|r| matches!(r, Route::Feed(s, _) if s == source))
                         }
                         TimelineKey::Author(did, _) => on_profile(did),
+                        TimelineKey::Quotes(uri, sort) => in_routes(
+                            &|r| matches!(r, Route::Quotes(u, s) if u == uri && s == sort),
+                        ),
                     }
             });
         }

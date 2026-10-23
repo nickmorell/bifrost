@@ -227,6 +227,7 @@ fn fetch(key: Key, cursor: Option<String>, load: Load, api: &impl TimelineApi) -
                 Key::Feed(source) => api.feed(source, cursor).await,
                 Key::Author(actor, filter) => api.author_feed(actor, *filter, cursor).await,
                 Key::Bookmarks => api.bookmarks(cursor).await,
+                Key::Quotes(uri, sort) => api.quotes(uri, *sort, cursor).await,
             }
         },
         move |r| Msg::Loaded(key.clone(), load, r),

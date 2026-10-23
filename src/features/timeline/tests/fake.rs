@@ -2,8 +2,8 @@
 //! and how many loads it starts, so the calls are never run and answer nothing.
 
 use crate::api::service::TimelineApi;
-use crate::api::{ApiError, AuthorFilter};
-use crate::model::{FeedItem, FeedSource, Page};
+use crate::api::{ApiError, AuthorFilter, QuoteSort};
+use crate::model::{AtUri, FeedItem, FeedSource, Page};
 use std::future::{Ready, ready};
 
 #[derive(Clone, Default)]
@@ -37,6 +37,14 @@ impl TimelineApi for Fake {
     }
     fn bookmarks(
         &self,
+        _: Option<String>,
+    ) -> impl Future<Output = Result<Page<FeedItem>, ApiError>> + Send {
+        nothing()
+    }
+    fn quotes(
+        &self,
+        _: &AtUri,
+        _: QuoteSort,
         _: Option<String>,
     ) -> impl Future<Output = Result<Page<FeedItem>, ApiError>> + Send {
         nothing()

@@ -75,9 +75,11 @@ macro_rules! xrpc {
 mod articles;
 mod lists;
 mod live;
+mod post_lists;
 mod posting;
 mod privacy;
 mod profile_record;
+pub use post_lists::QuoteSort;
 pub use profile_record::{ImageChange, LinkEdit, LinksEdit, ProfileEdit};
 mod video;
 pub use posting::{DraftImage, PostDraft};
@@ -528,24 +530,6 @@ impl Client {
             .bookmark
             .delete_bookmark(conv(json!({ "uri": uri }))?));
         Ok(())
-    }
-
-    /// The account's bookmarked posts, newest first. Deleted or blocked ones are skipped.
-    pub async fn bookmarks(&self, cursor: Option<String>) -> Result<Page<FeedItem>, ApiError> {
-        let out =
-            xrpc!(self, |a| a.api.app.bsky.bookmark.get_bookmarks(conv(
-                json!({"limit": PAGE_SIZE, "cursor": cursor})
-            )?));
-        let items: Vec<Value> = conv(&out.bookmarks)?;
-        let posts: Vec<Value> = items
-            .into_iter()
-            .filter_map(|b| b.get("item").cloned())
-            .map(|post| json!({ "post": post }))
-            .collect();
-        Ok(Page {
-            items: lenient_items(posts),
-            cursor: out.data.cursor.clone(),
-        })
     }
 
     /// Custom feeds the actor made.
