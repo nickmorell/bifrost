@@ -208,7 +208,7 @@ mod tests {
     fn videos_over_the_limit_are_refused() {
         let big = vec![0; api::MAX_VIDEO_BYTES + 1];
         let err = prepare_video("big.mp4".into(), big).unwrap_err();
-        assert!(err.to_string().starts_with("big.mp4 is 100 MB"), "{err}");
+        assert!(err.to_string().starts_with("big.mp4 is 300 MB"), "{err}");
         let ok = prepare_video("small.mp4".into(), vec![0; 10]).unwrap();
         assert_eq!(ok.name, "small.mp4");
     }

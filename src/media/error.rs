@@ -13,9 +13,9 @@ pub enum MediaError {
     #[error("couldn't encode the image ({0})")]
     Encode(String),
     /// A video over Bluesky's size limit, in MB.
-    #[error("is {0} MB; Bluesky takes videos up to 100 MB.")]
+    #[error("is {0} MB; Bluesky takes videos up to 300 MB.")]
     VideoTooBig(u64),
-    #[error("is longer than Bluesky's 3 minute limit.")]
+    #[error("is longer than Bluesky's 10 minute limit.")]
     VideoTooLong,
     /// The file couldn't be read.
     #[error("{0}")]

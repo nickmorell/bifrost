@@ -205,7 +205,7 @@ impl<'a, H: Host<M>, M: Clone + 'a> View<'a, H, M> {
                 ui::tip(
                     icon_button(Icon::Video, self.msg(Msg::AddVideo))
                         .on_press_maybe((!c.has_media()).then(|| self.msg(Msg::AddVideo))),
-                    "Add a video (up to 3 minutes). You can also drop it here.",
+                    "Add a video (up to 10 minutes). You can also drop it here.",
                 ),
                 self.emoji_button(),
                 self.warnings_button(),
