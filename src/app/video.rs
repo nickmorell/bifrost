@@ -1,8 +1,9 @@
 //! Videos in posts: which video is playing, its messages, and the adapters that
 //! hand it to the `video_player` component.
 
+use super::playback::Kind;
 use super::util::picture_of;
-use super::{App, Message, nav};
+use super::{App, Message, Route, nav};
 use crate::components::{self as ui, Picture, ghost, video_player as vp};
 use crate::theme::gap;
 use crate::video::{Pictures, Player, Status};
@@ -24,6 +25,8 @@ pub struct Playing {
     feed: Arc<dyn vp::Feed>,
     /// Shown over the whole window.
     pub expanded: bool,
+    /// The screen it plays on.
+    pub route: Route,
     /// Where the seek bar is being dragged to, before it is let go.
     scrub: Option<f32>,
     /// Where it plays in a browser (the post on bsky.app, or the stream on
@@ -97,7 +100,14 @@ impl App {
                 web,
             } => {
                 let player = Player::open(&playlist, self.settings.video_muted);
+                let kind = if player.live() {
+                    Kind::Live
+                } else {
+                    Kind::Video
+                };
+                self.make_room(kind);
                 self.video = Some(Playing {
+                    route: self.route().clone(),
                     post,
                     feed: Arc::new(Feed(player.pictures())),
                     player,

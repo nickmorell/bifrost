@@ -36,6 +36,7 @@ mod notifications;
 mod people;
 mod pictures;
 mod places;
+mod playback;
 mod popups;
 mod post;
 mod prefs;

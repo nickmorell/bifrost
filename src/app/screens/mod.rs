@@ -41,6 +41,14 @@ impl App {
                     .height(Length::Fill)
             ]
         };
+        if let Some(mini) = self.mini_player() {
+            panel_layers = panel_layers.push(
+                container(mini)
+                    .padding(gap::L)
+                    .align_bottom(Length::Fill)
+                    .align_right(Length::Fill),
+            );
+        }
         if let Some(t) = &self.toast {
             panel_layers = panel_layers.push(
                 container(ui::toast(t, Message::DismissToast))

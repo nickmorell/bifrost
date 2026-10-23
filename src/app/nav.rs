@@ -195,10 +195,7 @@ impl App {
         self.popups.menu = None;
         self.popups.filter = None;
         self.selected = None;
-        // A video stops when its screen is left, unless it fills the window.
-        if self.video.as_ref().is_some_and(|v| !v.expanded) {
-            self.video = None;
-        }
+        self.playback_on_enter();
         match self.route().clone() {
             Route::Home if self.settings.deck => self.deck_enter(),
             Route::Home => self.load_current(false),
