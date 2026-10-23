@@ -111,6 +111,22 @@ impl<'a> Screen<'a> {
                 .align_y(Alignment::Center),
             );
         }
+        let checks = row![
+            column![
+                text("Show verification checks")
+                    .size(size::BODY)
+                    .font(theme::MEDIUM),
+                ui::muted("The blue check beside accounts that Bluesky or a trusted verifier has verified."),
+            ]
+            .spacing(gap::XS)
+            .width(Length::Fill),
+            toggler(!prefs.hide_verification_badges)
+                .size(size::TOGGLE)
+                .style(theme::switch)
+                .on_toggle(|on| Msg::Edit(PrefEdit::HideVerificationBadges(!on))),
+        ]
+        .spacing(gap::L)
+        .align_y(Alignment::Center);
         col = col
             .push(space::vertical().height(gap::L))
             .push(ui::eyebrow("Muted words and tags"))
@@ -144,6 +160,9 @@ impl<'a> Screen<'a> {
                 )
                 .padding(gap::XS),
             )
+            .push(space::vertical().height(gap::L))
+            .push(ui::eyebrow("Verification"))
+            .push(ui::card(checks).padding(gap::L))
             .push(ui::muted(
                 "These settings are saved to your Bluesky account, so the official app follows them too.",
             ));

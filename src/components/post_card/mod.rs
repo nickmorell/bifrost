@@ -192,6 +192,8 @@ pub struct Header<'a> {
     pub time: Option<(String, String)>,
     /// The post a thread is about, with a larger name.
     pub large: bool,
+    /// A verification check after the name: `Some(true)` for a trusted verifier.
+    pub verified: Option<bool>,
     /// The width of the post.
     pub width: f32,
 }
@@ -207,6 +209,9 @@ pub fn header<'a, M: Clone + 'a>(h: Header<'a>, on_name: M) -> Element<'a, M> {
     if let Some((t, _)) = &h.time {
         room -= (t.chars().count() + 1) as f32 * char_width(size::SMALL) + gap::S;
     }
+    if h.verified.is_some() {
+        room -= icon_size::S + gap::S;
+    }
     let name_max = (room * 0.6 / char_width(name_size)) as usize;
     let name = shorten(h.name, name_max.max(8));
     room -= name.chars().count() as f32 * char_width(name_size);
@@ -216,6 +221,9 @@ pub fn header<'a, M: Clone + 'a>(h: Header<'a>, on_name: M) -> Element<'a, M> {
         .style(theme::bare)
         .on_press(on_name);
     let mut r = row![name].spacing(gap::S).align_y(Alignment::Center);
+    if let Some(verifier) = h.verified {
+        r = r.push(super::verified(verifier, icon_size::S));
+    }
     // Too little room for a useful part of the handle: the name stands alone.
     if handle_max >= 8 {
         r = r.push(faint(shorten(&handle, handle_max)));
@@ -263,6 +271,7 @@ mod tests {
                     handle: "ada.test",
                     time: Some(("5m".into(), "Oct 4".into())),
                     large: false,
+                    verified: Some(false),
                     width: 680.0,
                 },
                 Msg::Profile,
@@ -311,6 +320,7 @@ mod tests {
                 handle: "a-very-long-handle.bsky.social",
                 time: None,
                 large: true,
+                verified: None,
                 width: 300.0,
             },
             (),

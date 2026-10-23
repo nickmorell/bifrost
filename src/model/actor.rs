@@ -29,6 +29,39 @@ pub struct Author {
     pub viewer: ActorViewer,
     /// What they are up to, such as streaming live.
     pub status: Option<Box<ActorStatus>>,
+    pub verification: Option<Verification>,
+}
+
+/// Whether trusted verifiers (Bluesky and the organisations it trusts) verified an
+/// account, and whether it may verify others.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Verification {
+    /// "valid", "invalid" or "none".
+    #[serde(default)]
+    pub verified_status: String,
+    #[serde(default)]
+    pub trusted_verifier_status: String,
+}
+
+/// The check an account shows beside its name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Verified {
+    Account,
+    /// A trusted verifier, which can verify other accounts.
+    Verifier,
+}
+
+impl Verification {
+    fn badge(&self) -> Option<Verified> {
+        if self.trusted_verifier_status == "valid" {
+            Some(Verified::Verifier)
+        } else if self.verified_status == "valid" {
+            Some(Verified::Account)
+        } else {
+            None
+        }
+    }
 }
 
 /// Other things linked to a profile.
@@ -48,6 +81,10 @@ pub struct Germ {
 }
 
 impl Author {
+    pub fn verified(&self) -> Option<Verified> {
+        self.verification.as_ref()?.badge()
+    }
+
     /// Display name if set and non-empty, otherwise the handle.
     pub fn name(&self) -> &str {
         match self.display_name.as_deref() {
@@ -89,6 +126,7 @@ pub struct Profile {
     /// Links they chose to show, in their order.
     #[serde(default)]
     pub links: Vec<ProfileLink>,
+    pub verification: Option<Verification>,
 }
 
 /// A link shown on a profile, from its owner's `app.bsky.actor.link` record.
@@ -151,6 +189,10 @@ impl Profile {
             }
         }
         links
+    }
+
+    pub fn verified(&self) -> Option<Verified> {
+        self.verification.as_ref()?.badge()
     }
 
     /// Their pronouns, when set.
@@ -242,5 +284,21 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(old.shown_links()[0].url, "https://old.test");
+    }
+
+    #[test]
+    fn verifiers_outrank_verified_accounts() {
+        let with = |v: serde_json::Value| -> Option<Verified> {
+            let p: Profile = serde_json::from_value(json!({
+                "did": "did:plc:a", "handle": "a.test", "verification": v
+            }))
+            .unwrap();
+            p.verified()
+        };
+        let state = |verified: &str, verifier: &str| json!({"verifiedStatus": verified, "trustedVerifierStatus": verifier, "verifications": []});
+        assert_eq!(with(state("valid", "none")), Some(Verified::Account));
+        assert_eq!(with(state("valid", "valid")), Some(Verified::Verifier));
+        assert_eq!(with(state("invalid", "none")), None);
+        assert_eq!(with(serde_json::Value::Null), None);
     }
 }

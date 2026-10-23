@@ -23,5 +23,6 @@ pub const LIGHT: Palette = Palette {
     rose: rgb(0xc0436a),
     danger: rgb(0xb3443c),
     warning: rgb(0x8a6618),
+    verified: rgb(0x1083fe),
     ink: Color::BLACK,
 };

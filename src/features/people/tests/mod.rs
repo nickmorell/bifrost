@@ -137,6 +137,7 @@ fn a_failed_page_shows_why_and_tries_the_same_page_again() {
             actor: ME,
             kind: PeopleKind::Followers,
             pictures: &NoPictures,
+            badges: true,
         }
         .view(),
     );
@@ -177,6 +178,7 @@ fn muted_and_blocked_rows_undo_from_the_same_row() {
             actor: ME,
             kind: PeopleKind::Muted,
             pictures: &NoPictures,
+            badges: true,
         }
         .view(),
     );
@@ -211,6 +213,7 @@ fn an_empty_list_says_so() {
             actor: ME,
             kind: PeopleKind::Blocked,
             pictures: &NoPictures,
+            badges: true,
         }
         .view(),
     );

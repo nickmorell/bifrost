@@ -86,6 +86,7 @@ pub fn view<'a>(app: &'a App, post: &'a PostView, opts: Opts<'a>) -> Element<'a,
             time: (!focused)
                 .then(|| (relative_time(&post.indexed_at), full_time(&post.indexed_at))),
             large: focused,
+            verified: app.badge(a.verified()),
             width: app.post_width(),
         },
         Message::Nav(nav::Msg::OpenProfile(a.did.to_string())),

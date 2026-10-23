@@ -77,11 +77,7 @@ impl<'a, H: Host<M>, M: Clone + 'a> View<'a, H, M> {
             .push(
                 row![
                     avatar,
-                    column![
-                        text(p.name()).size(size::TITLE + 2.0).font(theme::BOLD),
-                        handle_line,
-                    ]
-                    .spacing(gap::XS),
+                    column![self.name_line(p), handle_line].spacing(gap::XS),
                 ]
                 .spacing(gap::L + 2.0)
                 .align_y(Alignment::Center),
@@ -110,6 +106,17 @@ impl<'a, H: Host<M>, M: Clone + 'a> View<'a, H, M> {
             col = col.push(self.links(links).wrap());
         }
         col.push(self.actions(p).wrap()).into()
+    }
+
+    /// Their name, with its verification check.
+    fn name_line(&self, p: &'a Profile) -> Row<'a, M> {
+        let mut line = row![text(p.name()).size(size::TITLE + 2.0).font(theme::BOLD)]
+            .spacing(gap::S)
+            .align_y(Alignment::Center);
+        if let Some(verifier) = crate::features::badge(p.verified(), self.badges) {
+            line = line.push(ui::verified(verifier, theme::icon_size::L));
+        }
+        line
     }
 
     /// Their profile links as small buttons, each with the site's icon when it has

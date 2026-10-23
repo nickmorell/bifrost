@@ -22,5 +22,6 @@ pub const DARK: Palette = Palette {
     rose: rgb(0xf2a9ba),
     danger: rgb(0xeba3a3),
     warning: rgb(0xe9cf9a),
+    verified: rgb(0x4c9dff),
     ink: Color::WHITE,
 };

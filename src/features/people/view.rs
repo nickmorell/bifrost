@@ -5,7 +5,7 @@ use super::{Msg, People};
 use crate::components::{self as ui, ghost, status};
 use crate::features::Pictures;
 use crate::model::{Author, PeopleKind};
-use crate::theme::{self, gap, size};
+use crate::theme::{self, gap, icon_size, size};
 use iced::widget::{Column, button, column, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -15,6 +15,8 @@ pub struct View<'a, P> {
     pub actor: &'a str,
     pub kind: PeopleKind,
     pub pictures: &'a P,
+    /// Whether to show verification checks.
+    pub badges: bool,
 }
 
 impl<'a, P: Pictures> View<'a, P> {
@@ -45,11 +47,11 @@ impl<'a, P: Pictures> View<'a, P> {
                 _ => None,
             };
             col = col.push(match action {
-                Some(b) => row![person(self.pictures, a), b]
+                Some(b) => row![person(self.pictures, a, self.badges), b]
                     .spacing(gap::S)
                     .align_y(Alignment::Center)
                     .into(),
-                None => person(self.pictures, a),
+                None => person(self.pictures, a, self.badges),
             });
         }
         if let Some(e) = &list.error {
@@ -73,16 +75,19 @@ impl<'a, P: Pictures> View<'a, P> {
     }
 }
 
-/// One account: picture, name and handle. Clicking it opens the profile.
-pub fn person<'a>(pictures: &impl Pictures, a: &'a Author) -> Element<'a, Msg> {
+/// One account: picture, name (with its verification check when `badges`) and
+/// handle. Clicking it opens the profile.
+pub fn person<'a>(pictures: &impl Pictures, a: &'a Author, badges: bool) -> Element<'a, Msg> {
+    let mut name = row![text(a.name()).size(size::BODY).font(theme::SEMIBOLD)]
+        .spacing(gap::XS + 2.0)
+        .align_y(Alignment::Center);
+    if let Some(verifier) = crate::features::badge(a.verified(), badges) {
+        name = name.push(ui::verified(verifier, icon_size::S));
+    }
     button(
         row![
             ui::avatar(pictures.picture(a.avatar.as_deref()), 40.0),
-            column![
-                text(a.name()).size(size::BODY).font(theme::SEMIBOLD),
-                ui::faint(format!("@{}", a.handle)),
-            ]
-            .spacing(gap::XXS),
+            column![name, ui::faint(format!("@{}", a.handle)),].spacing(gap::XXS),
         ]
         .spacing(gap::M)
         .align_y(Alignment::Center),

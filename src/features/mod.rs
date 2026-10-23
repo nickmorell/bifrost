@@ -32,7 +32,14 @@ pub mod timeline;
 pub mod translate;
 
 use crate::components::Picture;
+use crate::model::Verified;
 use iced::Task;
+
+/// The check to draw beside a name verified as `v`, as components take it (`true`
+/// for a trusted verifier), or `None` when there is none or `show` is off.
+pub fn badge(v: Option<Verified>, show: bool) -> Option<bool> {
+    v.filter(|_| show).map(|v| v == Verified::Verifier)
+}
 
 /// What a feature's views need from the app around them.
 pub trait Pictures {

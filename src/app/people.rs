@@ -42,13 +42,15 @@ impl App {
             actor,
             kind,
             pictures: self,
+            badges: !self.prefs.hide_verification_badges,
         };
         self.scroll(list.view().map(Message::People))
     }
 
     /// One account; clicking it opens the profile.
     pub(super) fn person_row<'a>(&self, a: &'a Author) -> Element<'a, Message> {
-        crate::features::people::person(self, a).map(Message::People)
+        crate::features::people::person(self, a, !self.prefs.hide_verification_badges)
+            .map(Message::People)
     }
 }
 
