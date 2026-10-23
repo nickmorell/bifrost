@@ -12,6 +12,7 @@ mod archive;
 mod articles;
 mod atstore;
 mod cache;
+mod cards;
 mod chat;
 mod collections;
 mod compose;
@@ -139,6 +140,7 @@ pub struct App {
     /// How far each screen was scrolled, by scroll key, so Back returns to the same place.
     scroll_offsets: HashMap<String, f32>,
     images: images::ImageCache,
+    cards: cards::Cards,
     viewer: Option<media::Viewer>,
     /// The window: focus, size, minimized, light or dark.
     win: window::WindowState,
@@ -220,6 +222,7 @@ impl App {
             routes: vec![Route::Home],
             scroll_offsets: HashMap::new(),
             images: images::ImageCache::default(),
+            cards: cards::Cards::default(),
             viewer: None,
             win: window::WindowState::default(),
             chats_deferred: false,
@@ -280,6 +283,7 @@ impl App {
         if !wanted.is_empty() {
             task = Task::batch([task, self.fetch_images(wanted)]);
         }
+        task = Task::batch([task, self.fetch_cards()]);
         if self.toast.is_some() && self.toast != before {
             self.toast_seq += 1;
             let seq = self.toast_seq;
@@ -329,6 +333,7 @@ impl App {
                 Task::batch([alerts, self.notifications_update(notifications::Msg::Count)])
             }
             Message::Pictures(msg) => self.pictures_update(msg),
+            Message::Cards(msg) => self.cards_update(msg),
             Message::Viewer(msg) => self.viewer_update(msg),
             Message::Window(msg) => self.window_update(msg),
             Message::Popup(msg) => self.popup_update(msg),

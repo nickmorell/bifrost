@@ -5,7 +5,7 @@ use super::web_url;
 use crate::app::util::{avatar, full_time, picture_of, relative_time};
 use crate::app::{App, Message, nav, popups};
 use crate::components::{self as ui, Icon, Picture, media, post_card as pc};
-use crate::integrations::{IntegrationCard, Shape, Shown};
+use crate::integrations::{Fact, IntegrationCard, Shape, Shown};
 use crate::model::{Embed, EmbeddedRecord, ExternalView, FeedSource, PostView, QuotedPost};
 use crate::moderation::{Context, Decision};
 use crate::theme::{self, gap, size};
@@ -108,11 +108,21 @@ fn integration_view<'a>(
     card: IntegrationCard,
     link_thumb: Option<&str>,
 ) -> Element<'a, Message> {
-    let thumb = card
-        .thumbnail_url
-        .as_deref()
+    let read = app.card_details(&card.open_url);
+    let thumb = read
+        .and_then(|d| d.thumbnail_url.as_deref())
+        .or(card.thumbnail_url.as_deref())
         .or(link_thumb)
         .map(|u| picture_of(app, u));
+    let facts = read.map_or_else(Vec::new, |d| {
+        d.facts
+            .iter()
+            .map(|f| match f {
+                Fact::Count(n, what) => format!("{} {what}", ui::compact(*n)),
+                Fact::Text(t) => t.clone(),
+            })
+            .collect()
+    });
     let art = match card.shape {
         Shape::Banner => ui::Art::Banner,
         Shape::Cover => ui::Art::Cover,
@@ -122,8 +132,11 @@ fn integration_view<'a>(
     let card = ui::integration_card(
         ui::Integration {
             provider: card.provider,
-            title: card.title,
+            title: read.and_then(|d| d.title.clone()).or(card.title),
+            text: read.and_then(|d| d.text.clone()),
             subtitle: card.subtitle,
+            facts,
+            live: read.is_some_and(|d| d.live),
             action_label: card.action_label,
             thumb,
             art,
