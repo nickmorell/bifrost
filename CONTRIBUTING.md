@@ -17,7 +17,7 @@ New issues are read once a week. Each gets one label:
 | `needs-info` | Can't reproduce it or it's unclear. Closes after 30 days without an answer. |
 | `later` | Fits, but not now. |
 | `out-of-scope` | On the [not planned](README.md#not-planned) list. Closed with a link to it. |
-| `good-first-issue` | Small and well described, left for contributors. |
+| `good first issue` | Small and well described, left for contributors. |
 
 ## What gets merged
 
