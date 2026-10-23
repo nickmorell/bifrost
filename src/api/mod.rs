@@ -436,7 +436,7 @@ impl Client {
             .bsky
             .actor
             .get_profile(conv(json!({ "actor": actor }))?));
-        conv(&*out)
+        conv(&out) // all of it, so fields atrium doesn't know yet (`links`) survive
     }
 
     pub async fn notifications(
