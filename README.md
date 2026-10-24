@@ -44,14 +44,16 @@ every connection to an outside service is off until you turn it on.
 - Keeps your place in every feed, and per-feed filters: hide reposts, replies or quotes, media only, a minimum
   number of likes
 - Grouped notifications, with optional desktop notifications and a tray icon
-- Profiles, custom feeds, lists and starter packs
+- Profiles with their links, pronouns and Bluesky's verification checks, custom feeds, lists and starter
+  packs
+- A quotes list for every post, Top or Latest
 - A long-form article reader, top links shared by people you follow today, and offline reading of posts you
   have already seen
 
 **Writing**
 
 - Composer with mentions, hashtags, link cards, up to four images with alt text (and a reminder when it is
-  missing), video upload, post language and content warnings
+  missing), videos up to 10 minutes, post language and content warnings
 - Threads: write a long post and split it into numbered posts, or mark the breaks yourself with `---`
 - Drafts, scheduled posts, and controls for who can reply to and quote your posts
 
@@ -87,8 +89,11 @@ talks to once you do.
 
 | Integration | What it does | Who BiFrost contacts |
 | --- | --- | --- |
-| YouTube, YouTube Shorts, Vimeo, Twitch | Video cards for links | The service, for thumbnails |
-| Spotify, Apple Music, SoundCloud, Bandcamp | Music cards; Bandcamp tracks play inside BiFrost | The service |
+| YouTube, YouTube Shorts, Vimeo | Video cards for links | The service, for thumbnails |
+| Twitch | Channel, video and clip cards; a LIVE mark, title and preview on channels streaming now | Twitch, for thumbnails and the channel's page |
+| Spotify | Music cards with Spotify's own name and cover art | Spotify (`open.spotify.com/oembed`) |
+| Apple Music, SoundCloud, Bandcamp | Music cards; Bandcamp tracks play inside BiFrost | The service |
+| GitHub | Repository, issue and pull request cards with stars, language and state | GitHub (`api.github.com`), without signing in |
 | GIPHY, Tenor, KLIPY | GIFs play in place | The GIF service |
 | Flickr, FreeMix | Photo and mix cards | The service |
 | Streamplace | A Live screen, streamer pages, live chat and LIVE rings on avatars | Streamplace |
