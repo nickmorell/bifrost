@@ -75,9 +75,12 @@ macro_rules! xrpc {
 mod articles;
 mod lists;
 mod live;
+mod post_lists;
 mod posting;
 mod privacy;
 mod profile_record;
+pub use post_lists::QuoteSort;
+pub use profile_record::{ImageChange, LinkEdit, LinksEdit, ProfileEdit};
 mod video;
 pub use posting::{DraftImage, PostDraft};
 pub use video::{
@@ -157,24 +160,6 @@ impl Display for ReportReason {
             Self::Other => "Something else",
         })
     }
-}
-
-/// What to do with a profile picture or banner when a profile is saved.
-#[derive(Debug, Clone)]
-pub enum ImageChange {
-    Keep,
-    Remove,
-    /// Upload this image (already re-encoded for upload).
-    Set(Vec<u8>),
-}
-
-/// The editable parts of your profile.
-#[derive(Debug, Clone)]
-pub struct ProfileEdit {
-    pub display_name: String,
-    pub description: String,
-    pub avatar: ImageChange,
-    pub banner: ImageChange,
 }
 
 const THREADGATE: &str = "app.bsky.feed.threadgate";
@@ -436,7 +421,7 @@ impl Client {
             .bsky
             .actor
             .get_profile(conv(json!({ "actor": actor }))?));
-        conv(&*out)
+        conv(&out) // all of it, so fields atrium doesn't know yet (`links`) survive
     }
 
     pub async fn notifications(
@@ -545,24 +530,6 @@ impl Client {
             .bookmark
             .delete_bookmark(conv(json!({ "uri": uri }))?));
         Ok(())
-    }
-
-    /// The account's bookmarked posts, newest first. Deleted or blocked ones are skipped.
-    pub async fn bookmarks(&self, cursor: Option<String>) -> Result<Page<FeedItem>, ApiError> {
-        let out =
-            xrpc!(self, |a| a.api.app.bsky.bookmark.get_bookmarks(conv(
-                json!({"limit": PAGE_SIZE, "cursor": cursor})
-            )?));
-        let items: Vec<Value> = conv(&out.bookmarks)?;
-        let posts: Vec<Value> = items
-            .into_iter()
-            .filter_map(|b| b.get("item").cloned())
-            .map(|post| json!({ "post": post }))
-            .collect();
-        Ok(Page {
-            items: lenient_items(posts),
-            cursor: out.data.cursor.clone(),
-        })
     }
 
     /// Custom feeds the actor made.

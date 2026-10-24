@@ -39,7 +39,7 @@ const MAX_LINES: usize = 400;
 /// Files already over the limit when the rule was introduced, with their size now.
 /// They may only shrink; the restructure splits them and removes them from this list.
 /// `cargo test` fails until a shrunk file's number here is lowered to match it.
-const OVERSIZED: &[(&str, usize)] = &[("src/api/mod.rs", 1027), ("src/video/mod.rs", 515)];
+const OVERSIZED: &[(&str, usize)] = &[("src/api/mod.rs", 994), ("src/video/mod.rs", 515)];
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

@@ -40,6 +40,8 @@ pub struct View<'a, H, M> {
     pub can_edit: bool,
     /// Whether a chat is being opened, which "Message" shows.
     pub chat_opening: bool,
+    /// Whether to show verification checks.
+    pub badges: bool,
     pub host: &'a H,
     /// Turns the screen's messages into the app's.
     pub lift: fn(Msg) -> M,

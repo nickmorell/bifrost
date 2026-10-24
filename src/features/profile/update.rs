@@ -44,8 +44,9 @@ impl Profiles {
             }
             Msg::Loaded(actor, result) => match *result {
                 Ok(p) => {
+                    let icons = p.links.iter().filter_map(|l| l.icon.clone());
                     let urls = [p.avatar.clone(), p.banner.clone()].into_iter().flatten();
-                    let urls = urls.collect();
+                    let urls = urls.chain(icons).collect();
                     self.by_actor.insert(actor, Ok(p));
                     Update::event(Event::Pictures(urls))
                 }

@@ -30,7 +30,9 @@ mod prefs;
 mod privacy;
 mod translation;
 
-pub use actor::{ActorViewer, Associated, Author, Germ, PeopleKind, Profile};
+pub use actor::{
+    ActorViewer, Associated, Author, Germ, PeopleKind, Profile, ProfileLink, Verification, Verified,
+};
 pub use alert::{AlertKind, Alerts};
 pub use article::{
     Article, ArticleRef, ArticleSummary, Block, DOCUMENT, PUBLICATION, Publication, SUBSCRIPTION,

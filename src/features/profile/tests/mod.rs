@@ -269,6 +269,7 @@ fn screen<'a>(p: &'a Profiles, actor: &'a str, tab: Tab) -> Element<'a, Msg> {
         me: ME,
         can_edit: true,
         chat_opening: false,
+        badges: true,
         host: &Plain,
         lift: |m| m,
     }

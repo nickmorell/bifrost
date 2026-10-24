@@ -8,13 +8,21 @@ use serde::Deserialize;
 use serde_json::Value;
 use std::time::Duration;
 
+mod probe;
+
+pub use probe::probe;
+
 const VIDEO_SERVICE: &str = "https://video.bsky.app";
+/// The video service's own DID, which the token for asking about limits is made
+/// out to.
+const VIDEO_DID: &str = "did:web:video.bsky.app";
 /// The video service's own DID, which upload tokens are made out to via the PDS.
 const UPLOAD_LXM: &str = "com.atproto.repo.uploadBlob";
-/// Largest file Bluesky takes.
-pub const MAX_VIDEO_BYTES: usize = 100 * 1024 * 1024;
-/// Longest video Bluesky takes, in seconds.
-pub const MAX_VIDEO_SECS: f64 = 180.0;
+const LIMITS_LXM: &str = "app.bsky.video.getUploadLimits";
+/// Largest file Bluesky takes (since August 2026).
+pub const MAX_VIDEO_BYTES: usize = 300 * 1024 * 1024;
+/// Longest video Bluesky takes, in seconds (10 minutes since August 2026).
+pub const MAX_VIDEO_SECS: f64 = 600.0;
 
 /// A video picked for a post.
 #[derive(Clone)]
@@ -47,92 +55,6 @@ pub fn is_video_name(name: &str) -> bool {
         .any(|ext| lower.ends_with(&format!(".{ext}")))
 }
 
-/// Reads the size and length from an MP4 or QuickTime file. Anything else gives
-/// an empty [`VideoInfo`].
-pub fn probe(bytes: &[u8]) -> VideoInfo {
-    let mut info = VideoInfo::default();
-    let Some(moov) = find_box(bytes, *b"moov") else {
-        return info;
-    };
-    if let Some(mvhd) = find_box(moov, *b"mvhd") {
-        info.duration = read_mvhd(mvhd);
-    }
-    for trak in boxes(moov)
-        .filter(|(kind, _)| kind == b"trak")
-        .map(|(_, b)| b)
-    {
-        let is_video = find_box(trak, *b"mdia")
-            .and_then(|m| find_box(m, *b"hdlr"))
-            .is_some_and(|h| h.get(8..12) == Some(b"vide"));
-        if let Some(tkhd) = find_box(trak, *b"tkhd")
-            && is_video
-            && let Some(size) = read_tkhd(tkhd)
-        {
-            info.size = Some(size);
-            break;
-        }
-    }
-    info
-}
-
-/// The boxes directly inside `data`: (type, contents).
-fn boxes(data: &[u8]) -> impl Iterator<Item = ([u8; 4], &[u8])> {
-    let mut pos = 0usize;
-    std::iter::from_fn(move || {
-        let head = data.get(pos..pos + 8)?;
-        let mut size = u32::from_be_bytes(head[0..4].try_into().ok()?) as usize;
-        let kind: [u8; 4] = head[4..8].try_into().ok()?;
-        let mut header = 8;
-        if size == 1 {
-            size = u64::from_be_bytes(data.get(pos + 8..pos + 16)?.try_into().ok()?) as usize;
-            header = 16;
-        } else if size == 0 {
-            size = data.len() - pos;
-        }
-        if size < header {
-            return None;
-        }
-        let body = data.get(pos + header..pos.checked_add(size)?)?;
-        pos += size;
-        Some((kind, body))
-    })
-}
-
-fn find_box(data: &[u8], kind: [u8; 4]) -> Option<&[u8]> {
-    boxes(data).find(|(k, _)| *k == kind).map(|(_, b)| b)
-}
-
-fn be32(b: &[u8], at: usize) -> Option<u32> {
-    Some(u32::from_be_bytes(b.get(at..at + 4)?.try_into().ok()?))
-}
-
-fn be64(b: &[u8], at: usize) -> Option<u64> {
-    Some(u64::from_be_bytes(b.get(at..at + 8)?.try_into().ok()?))
-}
-
-fn read_mvhd(b: &[u8]) -> Option<f64> {
-    let (scale, duration) = if *b.first()? == 1 {
-        (be32(b, 20)?, be64(b, 24)?)
-    } else {
-        (be32(b, 12)?, u64::from(be32(b, 16)?))
-    };
-    (scale > 0).then(|| duration as f64 / f64::from(scale))
-}
-
-fn read_tkhd(b: &[u8]) -> Option<(u32, u32)> {
-    // The matrix starts after the version-dependent times.
-    let matrix = if *b.first()? == 1 { 52 } else { 40 };
-    let w = be32(b, matrix + 36)? >> 16;
-    let h = be32(b, matrix + 40)? >> 16;
-    if w == 0 || h == 0 {
-        return None;
-    }
-    // A matrix with a non-zero `b` turns the picture a quarter, as phones record
-    // portrait video.
-    let turned = be32(b, matrix + 4)? != 0;
-    Some(if turned { (h, w) } else { (w, h) })
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct JobStatus {
@@ -149,6 +71,33 @@ struct JobReply {
     job_status: JobStatus,
 }
 
+/// What the video service says you may still upload today.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UploadLimits {
+    can_upload: bool,
+    remaining_daily_bytes: Option<u64>,
+    message: Option<String>,
+    error: Option<String>,
+}
+
+impl UploadLimits {
+    /// Why a video of `bytes` can't be uploaded now, if it can't.
+    fn refusal(self, bytes: usize) -> Option<String> {
+        if !self.can_upload {
+            let why = self.message.or(self.error);
+            return Some(why.unwrap_or_else(|| "You can't upload videos right now.".into()));
+        }
+        match self.remaining_daily_bytes {
+            Some(left) if bytes as u64 > left => Some(format!(
+                "That video is more than you can upload today ({} MB left). Try again tomorrow.",
+                left / 1_048_576
+            )),
+            _ => None,
+        }
+    }
+}
+
 /// The host of a URL, for a `did:web`.
 fn host_of(url: &str) -> Option<String> {
     url::Url::parse(url).ok()?.host_str().map(str::to_string)
@@ -158,18 +107,21 @@ impl Client {
     /// Uploads a video and waits until Bluesky has processed it, returning the blob
     /// to embed.
     pub async fn upload_video(&self, video: &DraftVideo) -> Result<Value, ApiError> {
+        let svc = VideoService(crate::net::shared());
+        // Ask first, so a daily limit is explained before a long upload. If the
+        // question itself fails, the upload goes ahead and the service decides.
+        if let Ok(limits) = self.upload_limits(&svc).await
+            && let Some(why) = limits.refusal(video.bytes.len())
+        {
+            return Err(ApiError::Other(why));
+        }
+
         let session = self.accounts.session().await?;
         let pds = host_of(&session.pds_url)
             .ok_or_else(|| ApiError::Other("can't tell which server your account is on".into()))?;
-        let aud = format!("did:web:{pds}");
-        let exp = chrono::Utc::now().timestamp() + 30 * 60;
-        let token = xrpc!(self, |a| a.api.com.atproto.server.get_service_auth(conv(
-            serde_json::json!({ "aud": aud, "lxm": UPLOAD_LXM, "exp": exp })
-        )?))
-        .data
-        .token;
-
-        let svc = VideoService(crate::net::shared());
+        let token = self
+            .service_token(&format!("did:web:{pds}"), UPLOAD_LXM)
+            .await?;
         let req = svc
             .request(
                 Method::Post,
@@ -194,6 +146,27 @@ impl Client {
         };
         let blob = self.wait_for_video(job).await?;
         Ok(blob)
+    }
+
+    /// A token for one call to a Bluesky service on your behalf, good for 30 minutes.
+    async fn service_token(&self, aud: &str, lxm: &str) -> Result<String, ApiError> {
+        let exp = chrono::Utc::now().timestamp() + 30 * 60;
+        Ok(
+            xrpc!(self, |a| a.api.com.atproto.server.get_service_auth(conv(
+                serde_json::json!({ "aud": aud, "lxm": lxm, "exp": exp })
+            )?))
+            .data
+            .token
+            .clone(),
+        )
+    }
+
+    async fn upload_limits(&self, svc: &VideoService<'_>) -> Result<UploadLimits, ApiError> {
+        let token = self.service_token(VIDEO_DID, LIMITS_LXM).await?;
+        let req = svc
+            .request(Method::Get, "/xrpc/app.bsky.video.getUploadLimits", &[])?
+            .header("Authorization", format!("Bearer {token}"));
+        svc.json(req).await
     }
 
     async fn wait_for_video(&self, mut job: JobStatus) -> Result<Value, ApiError> {
@@ -276,61 +249,19 @@ fn mime_of(name: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn mp4_box(kind: [u8; 4], body: &[u8]) -> Vec<u8> {
-        let mut b = ((body.len() + 8) as u32).to_be_bytes().to_vec();
-        b.extend_from_slice(&kind);
-        b.extend_from_slice(body);
-        b
-    }
-
-    fn tkhd(w: u32, h: u32, turned: bool) -> Vec<u8> {
-        let mut b = vec![0u8; 40];
-        let mut matrix = [0u32; 9];
-        if turned {
-            matrix[1] = 0x0001_0000;
-            matrix[3] = 0xffff_0000;
-        } else {
-            matrix[0] = 0x0001_0000;
-            matrix[4] = 0x0001_0000;
-        }
-        matrix[8] = 0x4000_0000;
-        for m in matrix {
-            b.extend_from_slice(&m.to_be_bytes());
-        }
-        b.extend_from_slice(&(w << 16).to_be_bytes());
-        b.extend_from_slice(&(h << 16).to_be_bytes());
-        mp4_box(*b"tkhd", &b)
-    }
-
-    fn trak(kind: [u8; 4], w: u32, h: u32, turned: bool) -> Vec<u8> {
-        let mut hdlr = vec![0u8; 8];
-        hdlr.extend_from_slice(&kind);
-        hdlr.extend_from_slice(&[0; 12]);
-        let mdia = mp4_box(*b"mdia", &mp4_box(*b"hdlr", &hdlr));
-        let mut body = tkhd(w, h, turned);
-        body.extend(mdia);
-        mp4_box(*b"trak", &body)
-    }
+    use serde_json::json;
 
     #[test]
-    fn reads_size_and_length() {
-        let mut mvhd = vec![0u8; 12];
-        mvhd.extend_from_slice(&1000u32.to_be_bytes());
-        mvhd.extend_from_slice(&12_500u32.to_be_bytes());
-        mvhd.extend_from_slice(&[0; 80]);
-        let mut moov = mp4_box(*b"mvhd", &mvhd);
-        moov.extend(trak(*b"soun", 0, 0, false));
-        moov.extend(trak(*b"vide", 1920, 1080, true));
-        let mut file = mp4_box(*b"ftyp", b"isom\0\0\0\0");
-        file.extend(mp4_box(*b"moov", &moov));
-        let info = probe(&file);
-        assert_eq!(info.duration, Some(12.5));
-        // Recorded on its side, so shown portrait.
-        assert_eq!(info.size, Some((1080, 1920)));
-        assert_eq!(probe(b"not a video"), VideoInfo::default());
-        assert!(is_video_name("Clip.MOV"));
-        assert!(!is_video_name("cat.gif"));
-        assert_eq!(upload_name("my clip (1).mp4"), "myclip1.mp4");
+    fn daily_limits_are_explained() {
+        let limits = |v: Value| serde_json::from_value::<UploadLimits>(v).unwrap();
+        let open = json!({"canUpload": true, "remainingDailyVideos": 20, "remainingDailyBytes": 10_485_760});
+        assert_eq!(limits(open.clone()).refusal(1_000), None);
+        let over = limits(open).refusal(20_000_000).unwrap();
+        assert!(over.contains("10 MB left"), "{over}");
+        let shut = json!({"canUpload": false, "message": "Verify your email first."});
+        assert_eq!(
+            limits(shut).refusal(1).as_deref(),
+            Some("Verify your email first.")
+        );
     }
 }

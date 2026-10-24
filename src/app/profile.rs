@@ -89,6 +89,7 @@ impl App {
             me: &self.my_did,
             can_edit: self.me.is_some(),
             chat_opening: self.chats.opening,
+            badges: !self.prefs.hide_verification_badges,
             host: self,
             lift: Message::Profile,
         }

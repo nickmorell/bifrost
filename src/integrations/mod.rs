@@ -4,6 +4,8 @@
 //! integration is never consulted, so it makes no network calls. Most are Bluesky's
 //! "external media" sources: they recognise links to a service and show them as a
 //! richer card (or, for GIFs, the animation itself) in place of the plain link card.
+//! Some also read more about a link from their service's public API (stars, state,
+//! whether a channel is live), which the app asks for only once the card is drawn.
 
 mod apple_music;
 pub mod atstore;
@@ -11,6 +13,7 @@ pub mod bandcamp;
 mod flickr;
 mod freemix;
 mod giphy;
+mod github;
 mod soundcloud;
 mod spotify;
 pub mod streamplace;
@@ -20,6 +23,7 @@ mod vimeo;
 mod youtube;
 
 use crate::storage::settings::Settings;
+use std::time::Duration;
 use url::Url;
 
 /// Where an integration is listed in Settings.
@@ -62,6 +66,34 @@ pub enum Shown {
     Gif(String),
 }
 
+/// What a service says about a link, read from its public API. The card shows it over
+/// what the link alone tells.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Details {
+    pub title: Option<String>,
+    /// A line under the title, such as a repository's description.
+    pub text: Option<String>,
+    pub thumbnail_url: Option<String>,
+    pub facts: Vec<Fact>,
+    /// The channel is streaming now.
+    pub live: bool,
+}
+
+/// A short fact on a card.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Fact {
+    /// A number of something, such as 1234 "stars", which the card shortens to "1.2K".
+    Count(u64, &'static str),
+    Text(String),
+}
+
+/// Where to ask a service about a link, and how long its answer holds.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Lookup {
+    pub url: String,
+    pub keep: Duration,
+}
+
 pub trait Integration: Send + Sync {
     /// Stable id used in settings. Never change it once shipped.
     fn id(&self) -> &'static str;
@@ -75,6 +107,16 @@ pub trait Integration: Send + Sync {
     /// What to show for `url`, if this integration understands it. `title` is the
     /// link's title from the post's own link card, when there is one.
     fn embed(&self, _url: &Url, _title: Option<&str>) -> Option<Shown> {
+        None
+    }
+
+    /// Where to read more about `url`, a link this integration shows, if anywhere.
+    fn lookup(&self, _url: &Url) -> Option<Lookup> {
+        None
+    }
+
+    /// Reads the answer to `lookup` about `url`.
+    fn details(&self, _url: &Url, _body: &[u8]) -> Option<Details> {
         None
     }
 }
@@ -96,6 +138,7 @@ pub fn all() -> Vec<Box<dyn Integration>> {
         Box::new(flickr::Flickr),
         Box::new(bandcamp::Bandcamp),
         Box::new(freemix::FreeMix),
+        Box::new(github::GitHub),
         Box::new(streamplace::Streamplace),
         Box::new(atstore::Atstore),
     ]
@@ -116,6 +159,40 @@ pub fn embed(
         .iter()
         .filter(|i| settings.integration_enabled(i.id()))
         .find_map(|i| i.embed(&parsed, title))
+}
+
+/// The enabled integration that shows `url`, with the link parsed.
+fn shower<'a>(
+    registry: &'a [Box<dyn Integration>],
+    settings: &Settings,
+    url: &str,
+) -> Option<(&'a dyn Integration, Url)> {
+    let parsed = Url::parse(url).ok()?;
+    let i = registry
+        .iter()
+        .filter(|i| settings.integration_enabled(i.id()))
+        .find(|i| i.embed(&parsed, None).is_some())?;
+    Some((i.as_ref(), parsed))
+}
+
+/// Where to read more about `url` from the service of the integration that shows it.
+pub fn lookup(registry: &[Box<dyn Integration>], settings: &Settings, url: &str) -> Option<Lookup> {
+    let (i, parsed) = shower(registry, settings, url)?;
+    i.lookup(&parsed)
+}
+
+/// Reads a service's answer about `url`. Only addresses on the web are kept as the
+/// card's picture.
+pub fn details(
+    registry: &[Box<dyn Integration>],
+    settings: &Settings,
+    url: &str,
+    body: &[u8],
+) -> Option<Details> {
+    let (i, parsed) = shower(registry, settings, url)?;
+    let mut d = i.details(&parsed, body)?;
+    d.thumbnail_url = d.thumbnail_url.filter(|t| t.starts_with("https://"));
+    Some(d)
 }
 
 /// The link's host without a leading `www.` or `m.`, lower case.
@@ -203,10 +280,10 @@ mod tests {
     fn ids_are_unique_and_the_services_are_streamplace_and_atstore() {
         let registry = all();
         let mut ids: Vec<_> = registry.iter().map(|i| i.id()).collect();
-        assert_eq!(ids.len(), 15);
+        assert_eq!(ids.len(), 16);
         ids.sort_unstable();
         ids.dedup();
-        assert_eq!(ids.len(), 15);
+        assert_eq!(ids.len(), 16);
         let services: Vec<_> = registry
             .iter()
             .filter(|i| i.group() == Group::Service)
@@ -240,6 +317,21 @@ mod tests {
             h("https://music.apple.com/x").as_deref(),
             Some("music.apple.com")
         );
+    }
+
+    #[test]
+    fn lookups_come_only_from_switched_on_integrations() {
+        let registry = all();
+        let repo = "https://github.com/nickmorell/bifrost";
+        assert_eq!(lookup(&registry, &Settings::default(), repo), None);
+        let on = on(&["github"]);
+        let l = lookup(&registry, &on, repo).unwrap();
+        assert_eq!(l.url, "https://api.github.com/repos/nickmorell/bifrost");
+        let body = br#"{"full_name":"a/b","owner":{"avatar_url":"http://x/a.png"}}"#;
+        let d = details(&registry, &on, repo, body).unwrap();
+        assert_eq!(d.title.as_deref(), Some("a/b"));
+        assert_eq!(d.thumbnail_url, None, "only https pictures");
+        assert_eq!(details(&registry, &Settings::default(), repo, body), None);
     }
 
     #[test]

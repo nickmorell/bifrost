@@ -56,7 +56,13 @@ pub fn link_card<'a, M: Clone + 'a>(link: Link<'a>, open: M) -> Element<'a, M> {
 pub struct Integration {
     pub provider: &'static str,
     pub title: Option<String>,
+    /// A line under the title, such as a repository's description.
+    pub text: Option<String>,
     pub subtitle: Option<String>,
+    /// Short facts after the subtitle, such as "1.2K stars".
+    pub facts: Vec<String>,
+    /// Streaming now: a LIVE mark beside the provider.
+    pub live: bool,
     /// What the open button says, such as "Watch on YouTube".
     pub action_label: String,
     pub thumb: Option<Picture>,
@@ -74,12 +80,23 @@ pub enum Art {
 
 /// An integration's card: a large picture, title and an open button.
 pub fn integration_card<'a, M: Clone + 'a>(card_: Integration, open: M) -> Element<'a, M> {
-    let mut info = column![faint(card_.provider).size(size::CAPTION)].spacing(gap::XS);
+    let mut top = Row::new()
+        .push(faint(card_.provider).size(size::CAPTION))
+        .spacing(gap::S)
+        .align_y(Alignment::Center);
+    if card_.live {
+        top = top.push(super::video_player::live_mark());
+    }
+    let mut info = column![top].spacing(gap::XS);
     if let Some(t) = card_.title {
         info = info.push(text(t).font(theme::MEDIUM).size(size::BODY));
     }
-    if let Some(s) = card_.subtitle {
-        info = info.push(muted(s));
+    if let Some(t) = card_.text {
+        info = info.push(muted(t));
+    }
+    let line: Vec<String> = card_.subtitle.into_iter().chain(card_.facts).collect();
+    if !line.is_empty() {
+        info = info.push(faint(line.join(" · ")));
     }
     let button = secondary(card_.action_label).on_press(open.clone());
     let mut line = Row::new().spacing(gap::M).align_y(Alignment::Center);
@@ -146,7 +163,10 @@ mod tests {
         let yt = Integration {
             provider: "YouTube",
             title: Some("A video".into()),
+            text: None,
             subtitle: None,
+            facts: Vec::new(),
+            live: true,
             action_label: "Watch".into(),
             thumb: None,
             art: Art::Banner,
@@ -159,7 +179,10 @@ mod tests {
         let song = Integration {
             provider: "Spotify",
             title: Some("A song".into()),
+            text: None,
             subtitle: Some("Song".into()),
+            facts: vec!["2 plays".into()],
+            live: false,
             action_label: "Listen".into(),
             thumb: Some(Picture::Waiting { pulse: false }),
             art: Art::Cover,

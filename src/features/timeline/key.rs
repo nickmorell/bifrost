@@ -1,7 +1,7 @@
 //! Which timeline, and why a page of it is fetched.
 
-use crate::api::AuthorFilter;
-use crate::model::FeedSource;
+use crate::api::{AuthorFilter, QuoteSort};
+use crate::model::{AtUri, FeedSource};
 
 /// What a timeline shows.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -9,6 +9,8 @@ pub enum Key {
     Feed(FeedSource),
     Author(String, AuthorFilter),
     Bookmarks,
+    /// The posts quoting a post.
+    Quotes(AtUri, QuoteSort),
 }
 
 /// Why a page of a timeline was fetched.

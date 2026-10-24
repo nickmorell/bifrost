@@ -152,7 +152,11 @@ impl App {
     pub(super) fn integration_images(&self, post: &PostView, out: &mut Vec<String>) {
         if let Some(Embed::External { external }) = &post.embed {
             match self.integration_embed(&external.uri, Some(&external.title)) {
-                Some(Shown::Card(card)) => out.extend(card.thumbnail_url),
+                Some(Shown::Card(card)) => {
+                    let read = self.card_details(&card.open_url);
+                    out.extend(read.and_then(|d| d.thumbnail_url.clone()));
+                    out.extend(card.thumbnail_url);
+                }
                 Some(Shown::Gif(url)) => out.push(url),
                 None => {}
             }

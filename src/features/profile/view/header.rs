@@ -3,7 +3,7 @@
 use super::{Host, View};
 use crate::components::{self as ui, Icon, compact, ghost, icon_button};
 use crate::features::profile::message::Msg;
-use crate::model::{PeopleKind, Profile};
+use crate::model::{PeopleKind, Profile, ProfileLink};
 use crate::theme::{self, gap, size};
 use iced::widget::{Column, Row, button, column, container, row, space, text};
 use iced::{Alignment, Element, Length};
@@ -31,6 +31,9 @@ impl<'a, H: Host<M>, M: Clone + 'a> View<'a, H, M> {
         let mut handle_line = row![ui::muted(format!("@{}", p.handle))]
             .spacing(gap::S)
             .align_y(Alignment::Center);
+        if let Some(pronouns) = p.pronouns() {
+            handle_line = handle_line.push(ui::faint(pronouns));
+        }
         let now = chrono::Utc::now().to_rfc3339();
         let live = p.status.as_ref().and_then(|s| s.live_now(&now));
         if let Some(l) = live {
@@ -74,11 +77,7 @@ impl<'a, H: Host<M>, M: Clone + 'a> View<'a, H, M> {
             .push(
                 row![
                     avatar,
-                    column![
-                        text(p.name()).size(size::TITLE + 2.0).font(theme::BOLD),
-                        handle_line,
-                    ]
-                    .spacing(gap::XS),
+                    column![self.name_line(p), handle_line].spacing(gap::XS),
                 ]
                 .spacing(gap::L + 2.0)
                 .align_y(Alignment::Center),
@@ -102,7 +101,50 @@ impl<'a, H: Host<M>, M: Clone + 'a> View<'a, H, M> {
         if let Some(d) = p.description.as_deref().filter(|d| !d.trim().is_empty()) {
             col = col.push(self.host.linked_text(d.trim()));
         }
+        let links = p.shown_links();
+        if !links.is_empty() {
+            col = col.push(self.links(links).wrap());
+        }
         col.push(self.actions(p).wrap()).into()
+    }
+
+    /// Their name, with its verification check.
+    fn name_line(&self, p: &'a Profile) -> Row<'a, M> {
+        let mut line = row![text(p.name()).size(size::TITLE + 2.0).font(theme::BOLD)]
+            .spacing(gap::S)
+            .align_y(Alignment::Center);
+        if let Some(verifier) = crate::features::badge(p.verified(), self.badges) {
+            line = line.push(ui::verified(verifier, theme::icon_size::L));
+        }
+        line
+    }
+
+    /// Their profile links as small buttons, each with the site's icon when it has
+    /// one, that open in the browser.
+    fn links(&self, links: Vec<ProfileLink>) -> Row<'a, M> {
+        let mut out = Row::new().spacing(gap::S).align_y(Alignment::Center);
+        for link in links {
+            let icon: Element<'a, M> = match self.host.picture(link.icon.as_deref()) {
+                Some(pic) => ui::picture(
+                    pic,
+                    theme::icon_size::M,
+                    theme::icon_size::M,
+                    theme::radius::S,
+                ),
+                None => ui::icon(Icon::Link, theme::icon_size::S, theme::Tone::Faint),
+            };
+            let label = row![icon, text(link.label()).size(size::SMALL)]
+                .spacing(gap::XS + 2.0)
+                .align_y(Alignment::Center);
+            out = out.push(ui::tip(
+                button(label)
+                    .padding([gap::XS, gap::S])
+                    .style(theme::ghost)
+                    .on_press(self.msg(Msg::OpenUrl(link.url.clone()))),
+                link.url,
+            ));
+        }
+        out
     }
 
     /// Edit for your own profile; follow, message, mute, block and the rest for

@@ -2,6 +2,7 @@
 
 use super::{
     ADULT, FeedSource, LABEL, LabelVisibility, MUTED_WORDS, POST_INTERACTION, SAVED_FEEDS,
+    VERIFICATION,
 };
 use crate::model::{Interaction, tid};
 use serde_json::Value;
@@ -22,6 +23,8 @@ pub enum PrefEdit {
     MoveFeed(FeedSource, i32),
     /// The reply and quote settings new posts start with.
     PostInteraction(Interaction),
+    /// Hide (`true`) or show the blue verification checks.
+    HideVerificationBadges(bool),
 }
 
 impl PrefEdit {
@@ -52,6 +55,9 @@ impl PrefEdit {
         match self {
             PrefEdit::AdultContent(on) => {
                 find(prefs, ADULT, serde_json::json!({}))["enabled"] = Value::from(*on);
+            }
+            PrefEdit::HideVerificationBadges(hide) => {
+                find(prefs, VERIFICATION, serde_json::json!({}))["hideBadges"] = Value::from(*hide);
             }
             PrefEdit::Label(label, vis) => {
                 let existing = prefs.iter_mut().find(|p| {

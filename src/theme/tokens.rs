@@ -48,6 +48,8 @@ pub struct Palette {
     pub rose: Color,
     pub danger: Color,
     pub warning: Color,
+    /// Bluesky's verification checks, blue in every app.
+    pub verified: Color,
     /// Washes over surfaces (hover, selection, tracks): white on dark, black on light.
     pub ink: Color,
 }
@@ -71,6 +73,7 @@ pub enum Tone {
     Rose,
     Danger,
     Warning,
+    Verified,
     Surface,
     Raised,
     Overlay,
@@ -89,6 +92,7 @@ impl Palette {
             Tone::Rose => self.rose,
             Tone::Danger => self.danger,
             Tone::Warning => self.warning,
+            Tone::Verified => self.verified,
             Tone::Surface => self.surface,
             Tone::Raised => self.raised,
             Tone::Overlay => self.overlay,

@@ -5,6 +5,7 @@ use super::{
     App, LinkTarget, Message, ProfileTab, Route, TimelineKey, feeds, live, notifications, people,
     search, timeline,
 };
+use crate::api::QuoteSort;
 use crate::model::{AtUri, FeedSource, PeopleKind};
 use iced::Task;
 use iced::widget::scrollable;
@@ -34,6 +35,8 @@ pub enum Msg {
     OpenUrl(String),
     /// Opens a link in the browser.
     Browse(String),
+    /// Show the open quotes list in another order.
+    QuotesSort(QuoteSort),
 }
 
 impl App {
@@ -113,6 +116,12 @@ impl App {
                     None => self.handle(Message::Nav(Msg::Browse(url))),
                 }
             }
+            Msg::QuotesSort(sort) => {
+                if let Some(Route::Quotes(_, s)) = self.routes.last_mut() {
+                    *s = sort;
+                }
+                Task::batch([self.on_enter(), self.restore_scroll()])
+            }
             Msg::Browse(url) => {
                 // Only web links: post text is untrusted and must not launch local programs.
                 if (url.starts_with("https://") || url.starts_with("http://"))
@@ -175,6 +184,7 @@ impl App {
             Route::Profile(did, tab) => tab.filter().map(|f| TimelineKey::Author(did.clone(), f)),
             Route::Feed(source, _) => Some(TimelineKey::Feed(source.clone())),
             Route::Bookmarks => Some(TimelineKey::Bookmarks),
+            Route::Quotes(uri, sort) => Some(TimelineKey::Quotes(uri.clone(), *sort)),
             Route::List(uri) => self.lists.timeline(uri).map(TimelineKey::Feed),
             _ => None,
         }
@@ -185,10 +195,7 @@ impl App {
         self.popups.menu = None;
         self.popups.filter = None;
         self.selected = None;
-        // A video stops when its screen is left, unless it fills the window.
-        if self.video.as_ref().is_some_and(|v| !v.expanded) {
-            self.video = None;
-        }
+        self.playback_on_enter();
         match self.route().clone() {
             Route::Home if self.settings.deck => self.deck_enter(),
             Route::Home => self.load_current(false),
@@ -202,7 +209,7 @@ impl App {
             }
             Route::Profile(actor, tab) => self.open_profile(actor, tab),
             Route::People(actor, kind) => self.people_update(people::Msg::Open(actor, kind)),
-            Route::Feed(..) | Route::Bookmarks => self.load_current(false),
+            Route::Feed(..) | Route::Bookmarks | Route::Quotes(..) => self.load_current(false),
             Route::Feeds => self.feeds_update(feeds::Msg::Load { force: false }),
             Route::Search if !self.search.searched() => self.load_explore(false),
             Route::Settings => Task::batch([
@@ -230,7 +237,9 @@ impl App {
     pub(super) fn refresh_current(&mut self) -> Task<Message> {
         match self.route().clone() {
             Route::Home if self.settings.deck => self.deck_refresh(),
-            Route::Home | Route::Feed(..) | Route::Bookmarks => self.load_current(true),
+            Route::Home | Route::Feed(..) | Route::Bookmarks | Route::Quotes(..) => {
+                self.load_current(true)
+            }
             Route::Drafts => {
                 self.drafts.list = self.drafts.store.list(&self.my_did);
                 Task::none()

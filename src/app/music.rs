@@ -1,16 +1,19 @@
 //! Playing Bandcamp releases in place: reading the tracks off the release page,
 //! playing one after another, and the track list under the card.
 
-use super::{App, Message};
+use super::playback::Kind;
+use super::{App, Message, Route};
 use crate::api::{self, ApiError};
-use crate::components::{self as ui, Icon, faint, icon_button};
+use crate::components::{self as ui, Icon, faint, icon, icon_button};
 use crate::integrations::bandcamp::{self, Release};
-use crate::theme::{self, gap, size};
+use crate::theme::{self, Tone, gap, icon_size, size};
 use crate::video::music::Music;
-use iced::widget::{Column, row, text};
+use iced::widget::{Column, column, row, text};
 use iced::{Alignment, Element, Length, Task};
 use std::time::Duration;
 
+/// The widest the mini-player gets.
+const MINI_WIDTH: f32 = 360.0;
 /// How often the track list's clock moves on.
 pub(super) const TICK: Duration = Duration::from_millis(500);
 
@@ -30,6 +33,8 @@ pub enum Msg {
 /// The release that is playing, or loading.
 pub(super) struct Listening {
     page: String,
+    /// The screen it was started on, which the mini-player goes back to.
+    route: Route,
     release: Option<Release>,
     track: usize,
     player: Option<Music>,
@@ -40,7 +45,9 @@ impl App {
     pub(super) fn music_update(&mut self, msg: Msg) -> Task<Message> {
         match msg {
             Msg::Play(page) => {
+                self.make_room(Kind::Music);
                 self.music = Some(Listening {
+                    route: self.route().clone(),
                     page: page.clone(),
                     release: None,
                     track: 0,
@@ -162,6 +169,45 @@ impl App {
     /// Whether the track list needs its clock moved on.
     pub(super) fn music_ticking(&self) -> bool {
         self.music.as_ref().is_some_and(|l| l.player.is_some())
+    }
+
+    /// The music's controls while you are on another screen than the one it was
+    /// started on: what plays, pause, stop, and a way back to its track list.
+    pub(super) fn mini_player(&self) -> Option<Element<'_, Message>> {
+        let l = self.music.as_ref().filter(|l| l.route != *self.route())?;
+        let release = l.release.as_ref()?;
+        let player = l.player.as_ref()?;
+        let track = release.tracks.get(l.track)?;
+        let paused = player.paused();
+        let what = column![
+            text(track.title.as_str())
+                .font(theme::MEDIUM)
+                .size(size::SMALL),
+            faint(format!("{} · {}", release.artist, clock(player.time()))).size(size::CAPTION),
+        ]
+        .spacing(gap::XXS);
+        let back = Message::Nav(super::nav::Msg::OpenRoute(l.route.clone()));
+        Some(
+            ui::outlined(
+                row![
+                    icon(Icon::Volume, icon_size::M, Tone::Muted),
+                    ui::tip(ui::hand(what).on_press(back), "Show the track list"),
+                    ui::tip(
+                        icon_button(
+                            if paused { Icon::Play } else { Icon::Pause },
+                            Message::Music(Msg::Pause(!paused)),
+                        ),
+                        if paused { "Play" } else { "Pause" },
+                    ),
+                    ui::tip(icon_button(Icon::Close, Message::Music(Msg::Stop)), "Stop"),
+                ]
+                .spacing(gap::S)
+                .align_y(Alignment::Center),
+            )
+            .style(theme::overlay)
+            .max_width(MINI_WIDTH)
+            .into(),
+        )
     }
 
     /// Under a Bandcamp card: a Play button, or the track list while it plays.

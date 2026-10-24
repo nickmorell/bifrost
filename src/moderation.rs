@@ -202,6 +202,7 @@ mod tests {
             labels: vec![],
             viewer: ActorViewer::default(),
             status: None,
+            verification: None,
         }
     }
 

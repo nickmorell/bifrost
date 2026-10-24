@@ -100,7 +100,9 @@ impl App {
         if self.music_ticking() {
             subs.push(iced::time::every(music::TICK).map(|_| Message::Music(music::Msg::Tick)));
         }
-        if self.images.needs_tick() {
+        // Cards drawn while their service hadn't been asked about them yet.
+        let cards = self.cards.waiting() && !self.settings.data_saver;
+        if self.images.needs_tick() || cards {
             subs.push(
                 iced::time::every(Duration::from_secs(2))
                     .map(|_| Message::Pictures(pictures::Msg::Tick)),

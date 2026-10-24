@@ -49,6 +49,8 @@ pub struct Preferences {
     pub following: FollowingPrefs,
     /// Who can reply to and quote new posts, unless changed in the composer.
     pub interaction: Interaction,
+    /// Leave out the blue verification checks beside names.
+    pub hide_verification_badges: bool,
     /// The preferences exactly as the server sent them, so edits keep everything
     /// BiFrost does not understand.
     pub raw: Vec<Value>,
@@ -59,6 +61,7 @@ const ADULT: &str = "app.bsky.actor.defs#adultContentPref";
 const LABEL: &str = "app.bsky.actor.defs#contentLabelPref";
 const MUTED_WORDS: &str = "app.bsky.actor.defs#mutedWordsPref";
 const POST_INTERACTION: &str = "app.bsky.actor.defs#postInteractionSettingsPref";
+const VERIFICATION: &str = "app.bsky.actor.defs#verificationPrefs";
 
 impl LabelVisibility {
     pub fn as_str(&self) -> &'static str {
@@ -146,6 +149,12 @@ impl Preferences {
                         )
                         .quotes,
                     };
+                }
+                VERIFICATION => {
+                    out.hide_verification_badges = p
+                        .get("hideBadges")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
                 }
                 "app.bsky.actor.defs#adultContentPref" => {
                     out.adult_content_enabled =
@@ -235,6 +244,7 @@ mod tests {
             PrefEdit::AdultContent(true),
             PrefEdit::Label("porn".into(), LabelVisibility::Warn),
             PrefEdit::MuteWord("#Spoilers ".into()),
+            PrefEdit::HideVerificationBadges(true),
             PrefEdit::MuteWord("spoilers".into()),
             PrefEdit::MoveFeed(g(3), -1),
             PrefEdit::PinFeed(g(2), true),

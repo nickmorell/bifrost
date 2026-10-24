@@ -1,11 +1,12 @@
 //! The app's messages and the screens it can show (`Route`).
 
 use super::{
-    ProfileTab, account, actions, articles, atstore, chat, collections, compose, composer, deck,
-    drafts, feeds, filters, interaction, lists, live, login, moderation, music, nav, notifications,
-    people, pictures, popups, prefs, privacy, search, stats, thread, timeline, translate, tray,
-    updates, video, viewer, window,
+    ProfileTab, account, actions, articles, atstore, cards, chat, collections, compose, composer,
+    deck, drafts, feeds, filters, interaction, lists, live, login, moderation, music, nav,
+    notifications, people, pictures, popups, prefs, privacy, search, stats, thread, timeline,
+    translate, tray, updates, video, viewer, window,
 };
+use crate::api::QuoteSort;
 pub use crate::features::actions::Toggle;
 use crate::model::{ArticleRef, AtUri, FeedSource, PeopleKind};
 
@@ -16,6 +17,8 @@ pub enum Route {
     Search,
     Settings,
     Thread(AtUri),
+    /// The posts quoting a post, in an order.
+    Quotes(AtUri, QuoteSort),
     Profile(String, ProfileTab),
     /// Accounts related to the actor: followers, follows, or your muted or blocked
     /// accounts.
@@ -110,6 +113,7 @@ pub enum Message {
     Nav(nav::Msg),
     Window(window::Msg),
     Pictures(pictures::Msg),
+    Cards(cards::Msg),
     Viewer(viewer::Msg),
     Popup(popups::Msg),
     Action(actions::Msg),

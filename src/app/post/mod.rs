@@ -17,9 +17,9 @@ use crate::app::compose;
 use crate::app::nav;
 use crate::app::popups;
 
-use crate::api::parse_at_uri;
+use crate::api::{QuoteSort, parse_at_uri};
 use crate::app::util::{avatar, compact, full_time, relative_time};
-use crate::app::{App, Menu, Message, Toggle};
+use crate::app::{App, Menu, Message, Route, Toggle};
 use crate::components::post_card as pc;
 use crate::components::{self as ui, Icon};
 use crate::features::Pictures;
@@ -86,6 +86,7 @@ pub fn view<'a>(app: &'a App, post: &'a PostView, opts: Opts<'a>) -> Element<'a,
             time: (!focused)
                 .then(|| (relative_time(&post.indexed_at), full_time(&post.indexed_at))),
             large: focused,
+            verified: app.badge(a.verified()),
             width: app.post_width(),
         },
         Message::Nav(nav::Msg::OpenProfile(a.did.to_string())),
@@ -183,7 +184,7 @@ fn actions<'a>(
         reposted,
         repost_menu: Message::Popup(popups::Msg::ToggleMenu(uri.clone(), repost_menu)),
         repost_popup: open(repost_menu).then(|| {
-            ui::menu(vec![
+            let mut items = vec![
                 ui::menu_item(
                     Icon::Repost,
                     if reposted { "Undo repost" } else { "Repost" },
@@ -201,7 +202,21 @@ fn actions<'a>(
                     },
                     (!quote_off).then(|| Message::Compose(compose::Msg::Quote(uri.clone()))),
                 ),
-            ])
+            ];
+            if post.quote_count > 0 {
+                items.push(ui::menu_item(
+                    Icon::List,
+                    match post.quote_count {
+                        1 => "See 1 quote".to_string(),
+                        n => format!("See {} quotes", compact(n)),
+                    },
+                    Some(Message::Nav(nav::Msg::OpenRoute(Route::Quotes(
+                        uri.clone(),
+                        QuoteSort::Top,
+                    )))),
+                ));
+            }
+            ui::menu(items)
         }),
         likes: count(post.like_count),
         liked,

@@ -39,6 +39,12 @@ impl App {
         self.layout_width() < 900.0
     }
 
+    /// The check to show for an account verified as `v`, as components take it
+    /// (`true` for a trusted verifier), unless you turned the checks off.
+    pub(crate) fn badge(&self, v: Option<crate::model::Verified>) -> Option<bool> {
+        crate::features::badge(v, !self.prefs.hide_verification_badges)
+    }
+
     /// How wide a post in a timeline is drawn: a deck column, or the reading width.
     pub(crate) fn post_width(&self) -> f32 {
         if self.deck_active() {
