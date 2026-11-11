@@ -5,47 +5,17 @@ use rodio::Source;
 use std::collections::VecDeque;
 use std::num::NonZero;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex};
 use symphonia::core::codecs::audio::well_known::CODEC_ID_AAC;
 use symphonia::core::codecs::audio::{AudioCodecParameters, AudioDecoder, AudioDecoderOptions};
 use symphonia::core::packet::Packet;
 use symphonia::default::codecs::AacDecoder;
 
+pub mod speakers;
+
 /// Samples handed to the output at a time. Small, so the clock stays close to what is
 /// heard.
 const CHUNK: usize = 512;
-
-/// The default output's mixer, opened once on a thread that keeps the device open.
-/// `None` when there is no sound device.
-#[expect(clippy::print_stderr, reason = "no logging module yet")]
-fn mixer() -> Option<&'static rodio::mixer::Mixer> {
-    static MIXER: OnceLock<Option<rodio::mixer::Mixer>> = OnceLock::new();
-    MIXER
-        .get_or_init(|| {
-            let (tx, rx) = std::sync::mpsc::channel();
-            std::thread::Builder::new()
-                .name("audio-out".into())
-                .spawn(
-                    move || match rodio::DeviceSinkBuilder::open_default_sink() {
-                        Ok(mut sink) => {
-                            sink.log_on_drop(false);
-                            let _ = tx.send(Some(sink.mixer().clone()));
-                            // The device closes when the sink drops, so keep it for good.
-                            loop {
-                                std::thread::park();
-                            }
-                        }
-                        Err(e) => {
-                            eprintln!("no sound output: {e}");
-                            let _ = tx.send(None);
-                        }
-                    },
-                )
-                .ok()?;
-            rx.recv().ok().flatten()
-        })
-        .as_ref()
-}
 
 #[derive(Default)]
 struct Inner {
@@ -102,18 +72,9 @@ impl Buffer {
             i.base.get_or_insert(time);
             i.samples.extend(samples);
         }
-        if !self.started.swap(true, Ordering::SeqCst) {
-            match mixer() {
-                Some(m) => m.add(Output {
-                    buffer: self.clone(),
-                    chunk: Vec::with_capacity(CHUNK),
-                    pos: 0,
-                    rate: NonZero::new(rate).unwrap_or(NonZero::<u32>::MIN),
-                    channels: NonZero::new(channels).unwrap_or(NonZero::<u16>::MIN),
-                }),
-                // With nowhere to play it, the sound can't drive the clock.
-                None => self.stop.store(true, Ordering::SeqCst),
-            }
+        // With nowhere to play it, the sound can't drive the clock.
+        if !self.started.swap(true, Ordering::SeqCst) && !speakers::play(self) {
+            self.stop.store(true, Ordering::SeqCst);
         }
     }
 
@@ -152,6 +113,25 @@ struct Output {
     pos: usize,
     rate: rodio::SampleRate,
     channels: rodio::ChannelCount,
+    /// The sound output this was added to; it ends once that output is replaced.
+    generation: u64,
+}
+
+impl Output {
+    fn new(buffer: Arc<Buffer>, generation: u64) -> Self {
+        let (rate, channels) = {
+            let i = super::lock(&buffer.inner);
+            (i.rate, i.channels)
+        };
+        Self {
+            buffer,
+            chunk: Vec::with_capacity(CHUNK),
+            pos: 0,
+            rate: NonZero::new(rate).unwrap_or(NonZero::<u32>::MIN),
+            channels: NonZero::new(channels).unwrap_or(NonZero::<u16>::MIN),
+            generation,
+        }
+    }
 }
 
 impl Iterator for Output {
@@ -159,7 +139,7 @@ impl Iterator for Output {
 
     fn next(&mut self) -> Option<f32> {
         let b = &self.buffer;
-        if b.stop.load(Ordering::Relaxed) {
+        if b.stop.load(Ordering::Relaxed) || !speakers::current(self.generation) {
             return None;
         }
         if self.pos >= self.chunk.len() {
@@ -278,13 +258,7 @@ mod tests {
     }
 
     fn output(b: &Arc<Buffer>) -> Output {
-        Output {
-            buffer: b.clone(),
-            chunk: Vec::new(),
-            pos: 0,
-            rate: NonZero::<u32>::MIN,
-            channels: NonZero::<u16>::MIN,
-        }
+        Output::new(b.clone(), speakers::generation())
     }
 
     #[test]

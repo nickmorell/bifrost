@@ -1,6 +1,7 @@
 //! What each message from the Settings screen does.
 
 use super::message::{Event, Msg};
+use super::props::Speaker;
 use super::state::Screen;
 use crate::features::Update;
 
@@ -24,6 +25,16 @@ impl Screen {
             Msg::CheckUpdates(on) => Update::event(Event::CheckUpdates(on)),
             Msg::ReportProblem => Update::event(Event::ReportProblem),
             Msg::OpenRelease(url) => Update::event(Event::Browse(url)),
+            Msg::Speakers(found) => {
+                self.speakers = std::iter::once(Speaker {
+                    id: None,
+                    name: "System default".into(),
+                })
+                .chain(found)
+                .collect();
+                Update::none()
+            }
+            Msg::Speaker(id) => Update::event(Event::Speaker(id)),
             Msg::RemoveAll => {
                 self.confirm_remove_all = true;
                 Update::none()

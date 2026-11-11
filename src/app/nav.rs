@@ -216,6 +216,7 @@ impl App {
                 self.translate_update(super::translate::Msg::ReadKeys),
                 self.privacy_update(super::privacy::Msg::Load),
                 self.chat_enter(),
+                Self::find_speakers(),
             ]),
             Route::Chats | Route::Chat(_) => self.chat_enter(),
             Route::List(uri) => Task::batch([self.ensure_list(uri), self.load_current(false)]),

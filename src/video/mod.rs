@@ -20,13 +20,13 @@ use clock::Clock;
 use error::PlayError;
 use iced::widget::image;
 use net::http;
-pub use pictures::Pictures;
 use source::Fetched;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, sync_channel};
 use std::{cmp::Reverse, collections::BinaryHeap, collections::VecDeque};
 use std::{sync::Arc, sync::Mutex, time::Duration};
 use ts::time_of;
+pub use {audio::speakers, pictures::Pictures};
 
 /// Tallest quality played inline; sharper ones cost far more to decode.
 const MAX_HEIGHT: u32 = 720;
