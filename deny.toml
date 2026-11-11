@@ -14,4 +14,20 @@ ignore = [
     # trigger it. The fix is in 0.26, which atrium-identity 0.1.9 doesn't allow;
     # remove this once atrium moves.
     { id = "RUSTSEC-2026-0119", reason = "only encodes our own single-question queries; fix needs atrium-identity to move to hickory 0.26" },
+    # crypto-bigint 0.5 (via atrium-oauth's elliptic-curve 0.13, for the DPoP key
+    # that signs browser sign-in requests): some constant-time operations can
+    # branch on secret values. Reading that needs precise timing of signatures on
+    # this computer, and the DPoP key belongs to one sign-in session. The fix is
+    # in 0.7.6, which elliptic-curve 0.13 doesn't allow; remove this once
+    # atrium-oauth moves.
+    { id = "RUSTSEC-2026-0387", reason = "timing side channel needs local access; fix needs atrium-oauth to move past elliptic-curve 0.13" },
+    # hickory-proto 0.24 (same path as RUSTSEC-2026-0119): three panics when parsing
+    # zone files, which BiFrost never reads, and a decoder that reserves memory for
+    # the record counts a DNS answer claims. Our answers come over HTTPS from the
+    # resolver we chose, so they can't be spoofed. Fixed in 0.26.2; remove these
+    # once atrium-identity moves.
+    { id = "RUSTSEC-2026-0487", reason = "zone-file parsing, which BiFrost never does" },
+    { id = "RUSTSEC-2026-0489", reason = "zone-file parsing, which BiFrost never does" },
+    { id = "RUSTSEC-2026-0490", reason = "zone-file parsing, which BiFrost never does" },
+    { id = "RUSTSEC-2026-0491", reason = "DNS answers come over HTTPS from our chosen resolver; fix needs atrium-identity to move to hickory 0.26" },
 ]
