@@ -150,6 +150,7 @@ pub(super) fn xrpc_err<E: Debug + Display>(e: XrpcError<E>) -> ApiError {
         }
         XrpcError::SerdeJson(e) => ApiError::Decode(e.to_string()),
         XrpcError::UnexpectedResponseType => ApiError::Decode(e.to_string()),
+        XrpcError::HttpClient(e) => ApiError::Unreachable(e.to_string()),
         // A browser sign-in's token was refused even after atrium tried to refresh
         // it: the sign-in has ended (Bluesky ends them after two weeks).
         XrpcError::Authentication(_) => ApiError::SessionExpired,
@@ -198,7 +199,7 @@ mod tests {
             ApiError::SessionExpired
         );
     }
-    
+
     #[test]
     fn auth_errors_carry_over() {
         assert_eq!(
