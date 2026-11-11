@@ -150,7 +150,9 @@ pub(super) fn xrpc_err<E: Debug + Display>(e: XrpcError<E>) -> ApiError {
         }
         XrpcError::SerdeJson(e) => ApiError::Decode(e.to_string()),
         XrpcError::UnexpectedResponseType => ApiError::Decode(e.to_string()),
-        XrpcError::HttpClient(e) => ApiError::Unreachable(e.to_string()),
+        // A browser sign-in's token was refused even after atrium tried to refresh
+        // it: the sign-in has ended (Bluesky ends them after two weeks).
+        XrpcError::Authentication(_) => ApiError::SessionExpired,
         other => ApiError::Other(other.to_string()),
     }
 }
@@ -186,6 +188,17 @@ mod tests {
         assert!(!ApiError::Other("NotFound".into()).is_not_found());
     }
 
+    #[test]
+    fn a_refused_browser_sign_in_token_ends_the_session() {
+        let header = atrium_api::xrpc::http::HeaderValue::from_static(
+            "DPoP algs=\"ES256\", error=\"invalid_token\"",
+        );
+        assert_eq!(
+            xrpc_err::<String>(XrpcError::Authentication(header)),
+            ApiError::SessionExpired
+        );
+    }
+    
     #[test]
     fn auth_errors_carry_over() {
         assert_eq!(
