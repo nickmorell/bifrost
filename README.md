@@ -71,6 +71,7 @@ every connection to an outside service is off until you turn it on.
 - Your own posting statistics, computed on your computer
 - Several accounts, signing in with OAuth or an app password
 - Dark, light and match-system themes, text size zoom, and a data saver mode
+- Pick the speakers or headphones videos, live streams and music play through
 
 ## Screenshots
 
@@ -151,6 +152,9 @@ The first release build takes several minutes because the whole program is optim
 Choose **Sign in with your browser** (OAuth), or sign in with your handle and an
 **app password** (Bluesky → Settings → Privacy and security → App passwords). You can add more accounts later
 and switch between them from the sidebar.
+
+Bluesky ends browser sign-ins after two weeks, so BiFrost asks you to sign in again then, with your handle
+already filled in. App-password sign-ins stay signed in.
 
 ## Development
 
