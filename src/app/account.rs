@@ -27,9 +27,12 @@ impl App {
     pub(super) fn account_update(&mut self, msg: Msg) -> Task<Message> {
         match msg {
             Msg::Booted(Ok(did)) | Msg::LoggedIn(Ok(did)) => self.start_session(did),
-            Msg::Booted(Err(_)) => {
+            Msg::Booted(Err(e)) => {
                 self.account_list = self.accounts.accounts().unwrap_or_default();
-                self.phase = Phase::Login(Login::default());
+                self.phase = Phase::Login(match e {
+                    ApiError::SessionExpired => self.expired_login(),
+                    _ => Login::default(),
+                });
                 Task::none()
             }
             Msg::LoggedIn(Err(e)) => {
@@ -206,9 +209,18 @@ impl App {
         }
         if matches!(e, ApiError::SessionExpired) {
             self.clear_caches();
-            self.phase = Phase::Login(Login::expired());
+            self.phase = Phase::Login(self.expired_login());
         }
         Task::none()
+    }
+
+    /// The login form after the active account's sign-in ended, filled in for it;
+    /// the plain form when no account is signed in.
+    fn expired_login(&self) -> Login {
+        self.account_list
+            .iter()
+            .find(|a| a.active)
+            .map_or_else(Login::default, |a| Login::expired(&a.handle, a.oauth))
     }
 
     /// Fetches your profile again after it changed, here and on your profile screen.

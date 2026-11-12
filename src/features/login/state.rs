@@ -33,9 +33,16 @@ impl Default for Login {
 }
 
 impl Login {
-    pub fn expired() -> Self {
+    /// The account's sign-in has ended: the form comes back with its handle filled
+    /// in, ready to sign in the way it did before.
+    pub fn expired(handle: &str, browser: bool) -> Self {
         Self {
-            notice: Some("Your session expired. Please log in again."),
+            identifier: handle.to_string(),
+            notice: Some(if browser {
+                "Bluesky ends browser sign-ins after two weeks. Sign in again to carry on."
+            } else {
+                "Your session expired. Please log in again."
+            }),
             ..Self::default()
         }
     }
