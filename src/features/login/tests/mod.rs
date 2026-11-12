@@ -92,7 +92,7 @@ fn an_email_code_is_asked_for_and_sent_along() {
 
 #[test]
 fn the_form_shows_why_and_its_buttons_send_messages() {
-    let mut login = Login::expired();
+    let mut login = Login::expired("alice.test", false);
     login.failed(&ApiError::Auth("Wrong password.".into()));
     let mut ui = simulator(login.view());
     assert!(
@@ -107,4 +107,19 @@ fn the_form_shows_why_and_its_buttons_send_messages() {
         &ui.into_messages().collect::<Vec<_>>()[..],
         [Msg::Browser, Msg::ToggleAdvanced]
     ));
+}
+
+#[test]
+fn an_ended_browser_sign_in_comes_back_ready_to_sign_in_again() {
+    let mut login = Login::expired("alice.test", true);
+    let mut ui = simulator(login.view());
+    assert!(
+        ui.find("Bluesky ends browser sign-ins after two weeks. Sign in again to carry on.")
+            .is_ok()
+    );
+    drop(ui);
+    assert!(
+        matches!(login.update(Msg::Browser), Some(Event::Browser(h)) if h == "alice.test"),
+        "one press signs the same account in again"
+    );
 }
