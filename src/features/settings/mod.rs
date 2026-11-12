@@ -15,6 +15,6 @@ mod view;
 mod tests;
 
 pub use message::{Event, Msg};
-pub use props::{Prefs, Service, UpdateCheck};
+pub use props::{Prefs, Service, Speaker, UpdateCheck};
 pub use state::Screen;
 pub use view::{Host, View};

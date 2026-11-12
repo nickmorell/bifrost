@@ -6,6 +6,10 @@ mod about;
 mod external;
 mod notifications;
 mod parts;
+mod sound;
+
+#[cfg(test)]
+pub(super) use sound::shown;
 
 use super::message::Msg;
 use super::props::Prefs;
@@ -51,6 +55,14 @@ impl<'a, H: Host<M>, M: Clone + 'static> View<'a, H, M> {
         col = section(col, "Layout").push(ui::card(parts::layout(p, lift)).padding(gap::L));
         col = section(col, "Accessibility")
             .push(ui::card(parts::accessibility(p, lift)).padding(gap::L));
+        col = section(col, "Sound").push(
+            ui::card(sound::card(
+                &self.screen.speakers,
+                p.speaker.as_deref(),
+                lift,
+            ))
+            .padding(gap::L),
+        );
         col = section(col, "Chats").push(ui::card(self.host.chats()).padding(gap::L));
         col = section(col, "Notifications")
             .push(ui::card(notifications::card(p, lift)).padding(gap::L));

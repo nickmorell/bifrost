@@ -75,6 +75,10 @@ pub struct Settings {
     /// Asks GitHub for the newest release at start-up. Off until turned on.
     #[serde(default)]
     pub check_updates: bool,
+    /// The speakers or headphones sound plays through, by device id. None is the
+    /// system's default.
+    #[serde(default)]
+    pub sound_output: Option<String>,
 }
 
 /// Dark or light colours, or whichever the system uses.
@@ -135,6 +139,7 @@ impl Default for Settings {
             alt_reminder: true,
             data_saver: false,
             check_updates: false,
+            sound_output: None,
         }
     }
 }

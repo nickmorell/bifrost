@@ -45,6 +45,22 @@ pub struct Prefs {
     pub version: &'static str,
     /// The opt-in update check and what it found.
     pub update: UpdateCheck,
+    /// The id of the device sound plays through, or `None` for the system's default.
+    pub speaker: Option<String>,
+}
+
+/// A device sound can play through, as Settings lists it. `id` is `None` for the
+/// system's default.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Speaker {
+    pub id: Option<String>,
+    pub name: String,
+}
+
+impl std::fmt::Display for Speaker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.name)
+    }
 }
 
 /// The opt-in check for a newer BiFrost, as Settings shows it.

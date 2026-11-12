@@ -56,6 +56,7 @@ fn prefs() -> Prefs {
         close_to_tray: Some(true),
         version: "0.1.0",
         update: UpdateCheck::Off,
+        speaker: None,
     }
 }
 
@@ -98,6 +99,7 @@ fn every_section_is_there_with_the_cards_the_app_draws() {
         "APPEARANCE",
         "LAYOUT",
         "ACCESSIBILITY",
+        "SOUND",
         "CHATS",
         "NOTIFICATIONS",
         "MODERATION",
@@ -329,5 +331,42 @@ fn confirming_wipes_once() {
     assert!(
         s.update(Msg::ConfirmRemoveAll(true)).events == [Event::Wipe],
         "the shell decides what to do; the card only asks"
+    );
+}
+
+#[test]
+fn sound_plays_through_the_device_picked() {
+    let mut s = Screen::default();
+    let speaker = |id: &str, name: &str| Speaker {
+        id: Some(id.into()),
+        name: name.into(),
+    };
+    let found = vec![
+        speaker("wasapi:1", "Speakers"),
+        speaker("wasapi:2", "Headphones"),
+    ];
+    assert!(s.update(Msg::Speakers(found)).events.is_empty());
+    assert_eq!(
+        s.speakers[0].name, "System default",
+        "the default comes first"
+    );
+    assert_eq!(s.speakers.len(), 3);
+    assert_eq!(
+        s.update(Msg::Speaker(Some("wasapi:2".into()))).events,
+        [Event::Speaker(Some("wasapi:2".into()))]
+    );
+    assert_eq!(s.update(Msg::Speaker(None)).events, [Event::Speaker(None)]);
+
+    let picked = |id| {
+        let (selected, placeholder) = view::shown(&s.speakers, id);
+        selected.map_or(placeholder.to_string(), |s| s.name)
+    };
+    assert_eq!(picked(Some("wasapi:2")), "Headphones");
+    assert_eq!(picked(None), "System default");
+    assert_eq!(picked(Some("wasapi:9")), "Not plugged in");
+    assert_eq!(
+        view::shown(&[], Some("wasapi:2")).1,
+        "System default",
+        "before the list has come"
     );
 }

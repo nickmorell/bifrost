@@ -4,7 +4,7 @@
 use super::{App, Message, Route, account, nav, window};
 use crate::api::ApiError;
 use crate::components::{self as ui, ghost};
-use crate::features::settings::{self, Event, Msg, Prefs, Service};
+use crate::features::settings::{self, Event, Msg, Prefs, Service, Speaker};
 use crate::integrations::Group;
 use crate::storage::image_cache;
 use crate::storage::settings::{Appearance, Settings, ZOOM_STEPS};
@@ -79,6 +79,12 @@ impl App {
                 Event::ReportProblem => self.report_problem(),
                 Event::Browse(url) => self.handle(Message::Nav(nav::Msg::Browse(url))),
                 Event::Wipe => self.remove_all_data(),
+                Event::Speaker(id) => {
+                    self.settings.sound_output.clone_from(&id);
+                    crate::video::speakers::use_speaker(id);
+                    self.save_settings();
+                    Task::none()
+                }
             });
         }
         Task::batch(tasks)
@@ -169,7 +175,26 @@ impl App {
                 .then_some(self.settings.close_to_tray),
             version: crate::api::github::VERSION,
             update: self.update_check(),
+            speaker: self.settings.sound_output.clone(),
         }
+    }
+
+    /// Looks for the speakers and headphones on this computer, for Settings.
+    pub(super) fn find_speakers() -> Task<Message> {
+        Task::perform(
+            async {
+                let found = tokio::task::spawn_blocking(crate::video::speakers::speakers).await;
+                found
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|s| Speaker {
+                        id: Some(s.id),
+                        name: s.name,
+                    })
+                    .collect()
+            },
+            |found| Message::Settings(Msg::Speakers(found)),
+        )
     }
 
     /// The integrations listed under `group`, each with its switch.

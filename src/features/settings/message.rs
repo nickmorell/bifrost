@@ -37,6 +37,10 @@ pub enum Msg {
     ReportProblem,
     /// The download link of a newer version was pressed, with its release page.
     OpenRelease(String),
+    /// The speakers and headphones on this computer were found.
+    Speakers(Vec<super::Speaker>),
+    /// A device to play sound through was picked, by id; `None` is the system's default.
+    Speaker(Option<String>),
     /// "Remove…" was pressed, which asks first.
     RemoveAll,
     /// The confirmation was answered: `true` removes everything.
@@ -78,4 +82,6 @@ pub enum Event {
     Browse(String),
     /// Sign out everywhere and delete what BiFrost keeps on this computer.
     Wipe,
+    /// Play sound through this device from now on, and save it.
+    Speaker(Option<String>),
 }

@@ -259,6 +259,7 @@ impl App {
             update: crate::features::settings::UpdateCheck::Off,
         };
         app.images.set_lazy(app.settings.data_saver);
+        crate::video::speakers::use_speaker(app.settings.sound_output.clone());
         std::thread::spawn(image_cache::trim);
         let task = Task::batch([
             app.restore_task(),
